@@ -1,0 +1,18 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/MultiSigSchnorr.Api/MultiSigSchnorr.Api.csproj" />
+    <Project Path="src/MultiSigSchnorr.Application/MultiSigSchnorr.Application.csproj" />
+    <Project Path="src/MultiSigSchnorr.Contracts/MultiSigSchnorr.Contracts.csproj" />
+    <Project Path="src/MultiSigSchnorr.Crypto/MultiSigSchnorr.Crypto.csproj" />
+    <Project Path="src/MultiSigSchnorr.Domain/MultiSigSchnorr.Domain.csproj" />
+    <Project Path="src/MultiSigSchnorr.Infrastructure/MultiSigSchnorr.Infrastructure.csproj" />
+    <Project Path="src/MultiSigSchnorr.Protocol/MultiSigSchnorr.Protocol.csproj" />
+    <Project Path="src/MultiSigSchnorr.Web/MultiSigSchnorr.Web.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/MultiSigSchnorr.Benchmarks/MultiSigSchnorr.Benchmarks.csproj" />
+    <Project Path="tests/MultiSigSchnorr.Tests.CryptoVectors/MultiSigSchnorr.Tests.CryptoVectors.csproj" />
+    <Project Path="tests/MultiSigSchnorr.Tests.Integration/MultiSigSchnorr.Tests.Integration.csproj" />
+    <Project Path="tests/MultiSigSchnorr.Tests.Unit/MultiSigSchnorr.Tests.Unit.csproj" />
+  </Folder>
+</Solution>

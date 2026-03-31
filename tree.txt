@@ -1,0 +1,1129 @@
+‘âàãªâãà  ¯ ¯®ª â®¬  Windows 10
+‘¥à¨©­ë© ­®¬¥à â®¬ : F266-07A6
+C:.
+³   .editorconfig
+³   .gitignore
+³   Directory.Build.props
+³   Directory.Packages.props
+³   global.json
+³   MultiSigSchnorr.slnx
+³   tree.txt
+³   
+ÃÄÄÄdeploy
+ÃÄÄÄsrc
+³   ÃÄÄÄMultiSigSchnorr.Api
+³   ³   ³   appsettings.Development.json
+³   ³   ³   appsettings.json
+³   ³   ³   MultiSigSchnorr.Api.csproj
+³   ³   ³   MultiSigSchnorr.Api.http
+³   ³   ³   Program.cs
+³   ³   ³   
+³   ³   ÃÄÄÄbin
+³   ³   ³   ÀÄÄÄDebug
+³   ³   ³       ÀÄÄÄnet10.0
+³   ³   ³               appsettings.Development.json
+³   ³   ³               appsettings.json
+³   ³   ³               Microsoft.AspNetCore.OpenApi.dll
+³   ³   ³               Microsoft.OpenApi.dll
+³   ³   ³               MultiSigSchnorr.Api.deps.json
+³   ³   ³               MultiSigSchnorr.Api.dll
+³   ³   ³               MultiSigSchnorr.Api.exe
+³   ³   ³               MultiSigSchnorr.Api.pdb
+³   ³   ³               MultiSigSchnorr.Api.runtimeconfig.json
+³   ³   ³               MultiSigSchnorr.Api.staticwebassets.endpoints.json
+³   ³   ³               MultiSigSchnorr.Application.dll
+³   ³   ³               MultiSigSchnorr.Application.pdb
+³   ³   ³               MultiSigSchnorr.Contracts.dll
+³   ³   ³               MultiSigSchnorr.Contracts.pdb
+³   ³   ³               MultiSigSchnorr.Crypto.dll
+³   ³   ³               MultiSigSchnorr.Crypto.pdb
+³   ³   ³               MultiSigSchnorr.Domain.dll
+³   ³   ³               MultiSigSchnorr.Domain.pdb
+³   ³   ³               MultiSigSchnorr.Infrastructure.dll
+³   ³   ³               MultiSigSchnorr.Infrastructure.pdb
+³   ³   ³               MultiSigSchnorr.Protocol.dll
+³   ³   ³               MultiSigSchnorr.Protocol.pdb
+³   ³   ³               
+³   ³   ÃÄÄÄobj
+³   ³   ³   ³   MultiSigSchnorr.Api.csproj.nuget.dgspec.json
+³   ³   ³   ³   MultiSigSchnorr.Api.csproj.nuget.g.props
+³   ³   ³   ³   MultiSigSchnorr.Api.csproj.nuget.g.targets
+³   ³   ³   ³   project.assets.json
+³   ³   ³   ³   project.nuget.cache
+³   ³   ³   ³   
+³   ³   ³   ÀÄÄÄDebug
+³   ³   ³       ÀÄÄÄnet10.0
+³   ³   ³           ³   .NETCoreApp,Version=v10.0.AssemblyAttributes.cs
+³   ³   ³           ³   apphost.exe
+³   ³   ³           ³   MultiSig.18261E6E.Up2Date
+³   ³   ³           ³   MultiSigSchnorr.Api.AssemblyInfo.cs
+³   ³   ³           ³   MultiSigSchnorr.Api.AssemblyInfoInputs.cache
+³   ³   ³           ³   MultiSigSchnorr.Api.assets.cache
+³   ³   ³           ³   MultiSigSchnorr.Api.csproj.AssemblyReference.cache
+³   ³   ³           ³   MultiSigSchnorr.Api.csproj.CoreCompileInputs.cache
+³   ³   ³           ³   MultiSigSchnorr.Api.csproj.FileListAbsolute.txt
+³   ³   ³           ³   MultiSigSchnorr.Api.dll
+³   ³   ³           ³   MultiSigSchnorr.Api.GeneratedMSBuildEditorConfig.editorconfig
+³   ³   ³           ³   MultiSigSchnorr.Api.genruntimeconfig.cache
+³   ³   ³           ³   MultiSigSchnorr.Api.GlobalUsings.g.cs
+³   ³   ³           ³   MultiSigSchnorr.Api.MvcApplicationPartsAssemblyInfo.cache
+³   ³   ³           ³   MultiSigSchnorr.Api.MvcApplicationPartsAssemblyInfo.cs
+³   ³   ³           ³   MultiSigSchnorr.Api.pdb
+³   ³   ³           ³   rjsmcshtml.dswa.cache.json
+³   ³   ³           ³   rjsmrazor.dswa.cache.json
+³   ³   ³           ³   rpswa.dswa.cache.json
+³   ³   ³           ³   staticwebassets.build.endpoints.json
+³   ³   ³           ³   staticwebassets.build.json
+³   ³   ³           ³   staticwebassets.build.json.cache
+³   ³   ³           ³   swae.build.ex.cache
+³   ³   ³           ³   
+³   ³   ³           ÃÄÄÄref
+³   ³   ³           ³       MultiSigSchnorr.Api.dll
+³   ³   ³           ³       
+³   ³   ³           ÃÄÄÄrefint
+³   ³   ³           ³       MultiSigSchnorr.Api.dll
+³   ³   ³           ³       
+³   ³   ³           ÀÄÄÄstaticwebassets
+³   ³   ÀÄÄÄProperties
+³   ³           launchSettings.json
+³   ³           
+³   ÃÄÄÄMultiSigSchnorr.Application
+³   ³   ³   MultiSigSchnorr.Application.csproj
+³   ³   ³   
+³   ³   ÃÄÄÄbin
+³   ³   ³   ÀÄÄÄDebug
+³   ³   ³       ÀÄÄÄnet10.0
+³   ³   ³               MultiSigSchnorr.Application.deps.json
+³   ³   ³               MultiSigSchnorr.Application.dll
+³   ³   ³               MultiSigSchnorr.Application.pdb
+³   ³   ³               MultiSigSchnorr.Contracts.dll
+³   ³   ³               MultiSigSchnorr.Contracts.pdb
+³   ³   ³               MultiSigSchnorr.Crypto.dll
+³   ³   ³               MultiSigSchnorr.Crypto.pdb
+³   ³   ³               MultiSigSchnorr.Domain.dll
+³   ³   ³               MultiSigSchnorr.Domain.pdb
+³   ³   ³               MultiSigSchnorr.Protocol.dll
+³   ³   ³               MultiSigSchnorr.Protocol.pdb
+³   ³   ³               
+³   ³   ÀÄÄÄobj
+³   ³       ³   MultiSigSchnorr.Application.csproj.nuget.dgspec.json
+³   ³       ³   MultiSigSchnorr.Application.csproj.nuget.g.props
+³   ³       ³   MultiSigSchnorr.Application.csproj.nuget.g.targets
+³   ³       ³   project.assets.json
+³   ³       ³   project.nuget.cache
+³   ³       ³   
+³   ³       ÀÄÄÄDebug
+³   ³           ÀÄÄÄnet10.0
+³   ³               ³   .NETCoreApp,Version=v10.0.AssemblyAttributes.cs
+³   ³               ³   MultiSig.E3DBB267.Up2Date
+³   ³               ³   MultiSigSchnorr.Application.AssemblyInfo.cs
+³   ³               ³   MultiSigSchnorr.Application.AssemblyInfoInputs.cache
+³   ³               ³   MultiSigSchnorr.Application.assets.cache
+³   ³               ³   MultiSigSchnorr.Application.csproj.AssemblyReference.cache
+³   ³               ³   MultiSigSchnorr.Application.csproj.CoreCompileInputs.cache
+³   ³               ³   MultiSigSchnorr.Application.csproj.FileListAbsolute.txt
+³   ³               ³   MultiSigSchnorr.Application.dll
+³   ³               ³   MultiSigSchnorr.Application.GeneratedMSBuildEditorConfig.editorconfig
+³   ³               ³   MultiSigSchnorr.Application.GlobalUsings.g.cs
+³   ³               ³   MultiSigSchnorr.Application.pdb
+³   ³               ³   
+³   ³               ÃÄÄÄref
+³   ³               ³       MultiSigSchnorr.Application.dll
+³   ³               ³       
+³   ³               ÀÄÄÄrefint
+³   ³                       MultiSigSchnorr.Application.dll
+³   ³                       
+³   ÃÄÄÄMultiSigSchnorr.Contracts
+³   ³   ³   MultiSigSchnorr.Contracts.csproj
+³   ³   ³   
+³   ³   ÃÄÄÄbin
+³   ³   ³   ÀÄÄÄDebug
+³   ³   ³       ÀÄÄÄnet10.0
+³   ³   ³               MultiSigSchnorr.Contracts.deps.json
+³   ³   ³               MultiSigSchnorr.Contracts.dll
+³   ³   ³               MultiSigSchnorr.Contracts.pdb
+³   ³   ³               
+³   ³   ÀÄÄÄobj
+³   ³       ³   MultiSigSchnorr.Contracts.csproj.nuget.dgspec.json
+³   ³       ³   MultiSigSchnorr.Contracts.csproj.nuget.g.props
+³   ³       ³   MultiSigSchnorr.Contracts.csproj.nuget.g.targets
+³   ³       ³   project.assets.json
+³   ³       ³   project.nuget.cache
+³   ³       ³   
+³   ³       ÀÄÄÄDebug
+³   ³           ÀÄÄÄnet10.0
+³   ³               ³   .NETCoreApp,Version=v10.0.AssemblyAttributes.cs
+³   ³               ³   MultiSigSchnorr.Contracts.AssemblyInfo.cs
+³   ³               ³   MultiSigSchnorr.Contracts.AssemblyInfoInputs.cache
+³   ³               ³   MultiSigSchnorr.Contracts.assets.cache
+³   ³               ³   MultiSigSchnorr.Contracts.csproj.CoreCompileInputs.cache
+³   ³               ³   MultiSigSchnorr.Contracts.csproj.FileListAbsolute.txt
+³   ³               ³   MultiSigSchnorr.Contracts.dll
+³   ³               ³   MultiSigSchnorr.Contracts.GeneratedMSBuildEditorConfig.editorconfig
+³   ³               ³   MultiSigSchnorr.Contracts.GlobalUsings.g.cs
+³   ³               ³   MultiSigSchnorr.Contracts.pdb
+³   ³               ³   
+³   ³               ÃÄÄÄref
+³   ³               ³       MultiSigSchnorr.Contracts.dll
+³   ³               ³       
+³   ³               ÀÄÄÄrefint
+³   ³                       MultiSigSchnorr.Contracts.dll
+³   ³                       
+³   ÃÄÄÄMultiSigSchnorr.Crypto
+³   ³   ³   MultiSigSchnorr.Crypto.csproj
+³   ³   ³   
+³   ³   ÃÄÄÄAbstractions
+³   ³   ÃÄÄÄAggregation
+³   ³   ÃÄÄÄbin
+³   ³   ³   ÀÄÄÄDebug
+³   ³   ³       ÀÄÄÄnet10.0
+³   ³   ³               MultiSigSchnorr.Crypto.deps.json
+³   ³   ³               MultiSigSchnorr.Crypto.dll
+³   ³   ³               MultiSigSchnorr.Crypto.pdb
+³   ³   ³               MultiSigSchnorr.Domain.dll
+³   ³   ³               MultiSigSchnorr.Domain.pdb
+³   ³   ³               
+³   ³   ÃÄÄÄCommitments
+³   ³   ÃÄÄÄCurves
+³   ³   ÃÄÄÄHashing
+³   ³   ÃÄÄÄNonces
+³   ³   ÃÄÄÄobj
+³   ³   ³   ³   MultiSigSchnorr.Crypto.csproj.nuget.dgspec.json
+³   ³   ³   ³   MultiSigSchnorr.Crypto.csproj.nuget.g.props
+³   ³   ³   ³   MultiSigSchnorr.Crypto.csproj.nuget.g.targets
+³   ³   ³   ³   project.assets.json
+³   ³   ³   ³   project.nuget.cache
+³   ³   ³   ³   
+³   ³   ³   ÀÄÄÄDebug
+³   ³   ³       ÀÄÄÄnet10.0
+³   ³   ³           ³   .NETCoreApp,Version=v10.0.AssemblyAttributes.cs
+³   ³   ³           ³   MultiSig.4565C193.Up2Date
+³   ³   ³           ³   MultiSigSchnorr.Crypto.AssemblyInfo.cs
+³   ³   ³           ³   MultiSigSchnorr.Crypto.AssemblyInfoInputs.cache
+³   ³   ³           ³   MultiSigSchnorr.Crypto.assets.cache
+³   ³   ³           ³   MultiSigSchnorr.Crypto.csproj.AssemblyReference.cache
+³   ³   ³           ³   MultiSigSchnorr.Crypto.csproj.CoreCompileInputs.cache
+³   ³   ³           ³   MultiSigSchnorr.Crypto.csproj.FileListAbsolute.txt
+³   ³   ³           ³   MultiSigSchnorr.Crypto.dll
+³   ³   ³           ³   MultiSigSchnorr.Crypto.GeneratedMSBuildEditorConfig.editorconfig
+³   ³   ³           ³   MultiSigSchnorr.Crypto.GlobalUsings.g.cs
+³   ³   ³           ³   MultiSigSchnorr.Crypto.pdb
+³   ³   ³           ³   
+³   ³   ³           ÃÄÄÄref
+³   ³   ³           ³       MultiSigSchnorr.Crypto.dll
+³   ³   ³           ³       
+³   ³   ³           ÀÄÄÄrefint
+³   ³   ³                   MultiSigSchnorr.Crypto.dll
+³   ³   ³                   
+³   ³   ÃÄÄÄRandomization
+³   ³   ÃÄÄÄSchnorr
+³   ³   ÃÄÄÄSecurity
+³   ³   ÀÄÄÄSerialization
+³   ÃÄÄÄMultiSigSchnorr.Domain
+³   ³   ³   MultiSigSchnorr.Domain.csproj
+³   ³   ³   
+³   ³   ÃÄÄÄAbstractions
+³   ³   ³       IClock.cs
+³   ³   ³       IHashAlgorithmPolicy.cs
+³   ³   ³       IRandomSource.cs
+³   ³   ³       
+³   ³   ÃÄÄÄbin
+³   ³   ³   ÀÄÄÄDebug
+³   ³   ³       ÀÄÄÄnet10.0
+³   ³   ³               MultiSigSchnorr.Domain.deps.json
+³   ³   ³               MultiSigSchnorr.Domain.dll
+³   ³   ³               MultiSigSchnorr.Domain.pdb
+³   ³   ³               
+³   ³   ÃÄÄÄConstants
+³   ³   ³       CurveNames.cs
+³   ³   ³       DomainSeparationTags.cs
+³   ³   ³       
+³   ³   ÃÄÄÄEntities
+³   ³   ³       AggregateSignature.cs
+³   ³   ³       AuditEvent.cs
+³   ³   ³       Epoch.cs
+³   ³   ³       EpochMember.cs
+³   ³   ³       NonceCommitment.cs
+³   ³   ³       NonceReveal.cs
+³   ³   ³       PartialSignature.cs
+³   ³   ³       Participant.cs
+³   ³   ³       ParticipantPublicKey.cs
+³   ³   ³       RevocationRecord.cs
+³   ³   ³       SessionMember.cs
+³   ³   ³       SigningSession.cs
+³   ³   ³       User.cs
+³   ³   ³       
+³   ³   ÃÄÄÄEnums
+³   ³   ³       AuditEventType.cs
+³   ³   ³       EpochStatus.cs
+³   ³   ³       ParticipantStatus.cs
+³   ³   ³       SessionStatus.cs
+³   ³   ³       UserRole.cs
+³   ³   ³       
+³   ³   ÃÄÄÄobj
+³   ³   ³   ³   MultiSigSchnorr.Domain.csproj.nuget.dgspec.json
+³   ³   ³   ³   MultiSigSchnorr.Domain.csproj.nuget.g.props
+³   ³   ³   ³   MultiSigSchnorr.Domain.csproj.nuget.g.targets
+³   ³   ³   ³   project.assets.json
+³   ³   ³   ³   project.nuget.cache
+³   ³   ³   ³   
+³   ³   ³   ÀÄÄÄDebug
+³   ³   ³       ÀÄÄÄnet10.0
+³   ³   ³           ³   .NETCoreApp,Version=v10.0.AssemblyAttributes.cs
+³   ³   ³           ³   MultiSigSchnorr.Domain.AssemblyInfo.cs
+³   ³   ³           ³   MultiSigSchnorr.Domain.AssemblyInfoInputs.cache
+³   ³   ³           ³   MultiSigSchnorr.Domain.assets.cache
+³   ³   ³           ³   MultiSigSchnorr.Domain.csproj.CoreCompileInputs.cache
+³   ³   ³           ³   MultiSigSchnorr.Domain.csproj.FileListAbsolute.txt
+³   ³   ³           ³   MultiSigSchnorr.Domain.dll
+³   ³   ³           ³   MultiSigSchnorr.Domain.GeneratedMSBuildEditorConfig.editorconfig
+³   ³   ³           ³   MultiSigSchnorr.Domain.GlobalUsings.g.cs
+³   ³   ³           ³   MultiSigSchnorr.Domain.pdb
+³   ³   ³           ³   
+³   ³   ³           ÃÄÄÄref
+³   ³   ³           ³       MultiSigSchnorr.Domain.dll
+³   ³   ³           ³       
+³   ³   ³           ÀÄÄÄrefint
+³   ³   ³                   MultiSigSchnorr.Domain.dll
+³   ³   ³                   
+³   ³   ÀÄÄÄValueObjects
+³   ³           CommitmentValue.cs
+³   ³           EpochStateHashValue.cs
+³   ³           MessageDigestValue.cs
+³   ³           PointValue.cs
+³   ³           PublicKeyValue.cs
+³   ³           ScalarValue.cs
+³   ³           SignatureScalarValue.cs
+³   ³           
+³   ÃÄÄÄMultiSigSchnorr.Infrastructure
+³   ³   ³   MultiSigSchnorr.Infrastructure.csproj
+³   ³   ³   
+³   ³   ÃÄÄÄbin
+³   ³   ³   ÀÄÄÄDebug
+³   ³   ³       ÀÄÄÄnet10.0
+³   ³   ³               MultiSigSchnorr.Application.dll
+³   ³   ³               MultiSigSchnorr.Application.pdb
+³   ³   ³               MultiSigSchnorr.Contracts.dll
+³   ³   ³               MultiSigSchnorr.Contracts.pdb
+³   ³   ³               MultiSigSchnorr.Crypto.dll
+³   ³   ³               MultiSigSchnorr.Crypto.pdb
+³   ³   ³               MultiSigSchnorr.Domain.dll
+³   ³   ³               MultiSigSchnorr.Domain.pdb
+³   ³   ³               MultiSigSchnorr.Infrastructure.deps.json
+³   ³   ³               MultiSigSchnorr.Infrastructure.dll
+³   ³   ³               MultiSigSchnorr.Infrastructure.pdb
+³   ³   ³               MultiSigSchnorr.Protocol.dll
+³   ³   ³               MultiSigSchnorr.Protocol.pdb
+³   ³   ³               
+³   ³   ÀÄÄÄobj
+³   ³       ³   MultiSigSchnorr.Infrastructure.csproj.nuget.dgspec.json
+³   ³       ³   MultiSigSchnorr.Infrastructure.csproj.nuget.g.props
+³   ³       ³   MultiSigSchnorr.Infrastructure.csproj.nuget.g.targets
+³   ³       ³   project.assets.json
+³   ³       ³   project.nuget.cache
+³   ³       ³   
+³   ³       ÀÄÄÄDebug
+³   ³           ÀÄÄÄnet10.0
+³   ³               ³   .NETCoreApp,Version=v10.0.AssemblyAttributes.cs
+³   ³               ³   MultiSig.22EF95CA.Up2Date
+³   ³               ³   MultiSigSchnorr.Infrastructure.AssemblyInfo.cs
+³   ³               ³   MultiSigSchnorr.Infrastructure.AssemblyInfoInputs.cache
+³   ³               ³   MultiSigSchnorr.Infrastructure.assets.cache
+³   ³               ³   MultiSigSchnorr.Infrastructure.csproj.AssemblyReference.cache
+³   ³               ³   MultiSigSchnorr.Infrastructure.csproj.CoreCompileInputs.cache
+³   ³               ³   MultiSigSchnorr.Infrastructure.csproj.FileListAbsolute.txt
+³   ³               ³   MultiSigSchnorr.Infrastructure.dll
+³   ³               ³   MultiSigSchnorr.Infrastructure.GeneratedMSBuildEditorConfig.editorconfig
+³   ³               ³   MultiSigSchnorr.Infrastructure.GlobalUsings.g.cs
+³   ³               ³   MultiSigSchnorr.Infrastructure.pdb
+³   ³               ³   
+³   ³               ÃÄÄÄref
+³   ³               ³       MultiSigSchnorr.Infrastructure.dll
+³   ³               ³       
+³   ³               ÀÄÄÄrefint
+³   ³                       MultiSigSchnorr.Infrastructure.dll
+³   ³                       
+³   ÃÄÄÄMultiSigSchnorr.Protocol
+³   ³   ³   MultiSigSchnorr.Protocol.csproj
+³   ³   ³   
+³   ³   ÃÄÄÄbin
+³   ³   ³   ÀÄÄÄDebug
+³   ³   ³       ÀÄÄÄnet10.0
+³   ³   ³               MultiSigSchnorr.Crypto.dll
+³   ³   ³               MultiSigSchnorr.Crypto.pdb
+³   ³   ³               MultiSigSchnorr.Domain.dll
+³   ³   ³               MultiSigSchnorr.Domain.pdb
+³   ³   ³               MultiSigSchnorr.Protocol.deps.json
+³   ³   ³               MultiSigSchnorr.Protocol.dll
+³   ³   ³               MultiSigSchnorr.Protocol.pdb
+³   ³   ³               
+³   ³   ÀÄÄÄobj
+³   ³       ³   MultiSigSchnorr.Protocol.csproj.nuget.dgspec.json
+³   ³       ³   MultiSigSchnorr.Protocol.csproj.nuget.g.props
+³   ³       ³   MultiSigSchnorr.Protocol.csproj.nuget.g.targets
+³   ³       ³   project.assets.json
+³   ³       ³   project.nuget.cache
+³   ³       ³   
+³   ³       ÀÄÄÄDebug
+³   ³           ÀÄÄÄnet10.0
+³   ³               ³   .NETCoreApp,Version=v10.0.AssemblyAttributes.cs
+³   ³               ³   MultiSig.586C57DE.Up2Date
+³   ³               ³   MultiSigSchnorr.Protocol.AssemblyInfo.cs
+³   ³               ³   MultiSigSchnorr.Protocol.AssemblyInfoInputs.cache
+³   ³               ³   MultiSigSchnorr.Protocol.assets.cache
+³   ³               ³   MultiSigSchnorr.Protocol.csproj.AssemblyReference.cache
+³   ³               ³   MultiSigSchnorr.Protocol.csproj.CoreCompileInputs.cache
+³   ³               ³   MultiSigSchnorr.Protocol.csproj.FileListAbsolute.txt
+³   ³               ³   MultiSigSchnorr.Protocol.dll
+³   ³               ³   MultiSigSchnorr.Protocol.GeneratedMSBuildEditorConfig.editorconfig
+³   ³               ³   MultiSigSchnorr.Protocol.GlobalUsings.g.cs
+³   ³               ³   MultiSigSchnorr.Protocol.pdb
+³   ³               ³   
+³   ³               ÃÄÄÄref
+³   ³               ³       MultiSigSchnorr.Protocol.dll
+³   ³               ³       
+³   ³               ÀÄÄÄrefint
+³   ³                       MultiSigSchnorr.Protocol.dll
+³   ³                       
+³   ÀÄÄÄMultiSigSchnorr.Web
+³       ³   appsettings.Development.json
+³       ³   appsettings.json
+³       ³   MultiSigSchnorr.Web.csproj
+³       ³   Program.cs
+³       ³   
+³       ÃÄÄÄbin
+³       ³   ÀÄÄÄDebug
+³       ³       ÀÄÄÄnet10.0
+³       ³               appsettings.Development.json
+³       ³               appsettings.json
+³       ³               MultiSigSchnorr.Contracts.dll
+³       ³               MultiSigSchnorr.Contracts.pdb
+³       ³               MultiSigSchnorr.Web.deps.json
+³       ³               MultiSigSchnorr.Web.dll
+³       ³               MultiSigSchnorr.Web.exe
+³       ³               MultiSigSchnorr.Web.pdb
+³       ³               MultiSigSchnorr.Web.runtimeconfig.json
+³       ³               MultiSigSchnorr.Web.staticwebassets.endpoints.json
+³       ³               MultiSigSchnorr.Web.staticwebassets.runtime.json
+³       ³               
+³       ÃÄÄÄComponents
+³       ³   ³   App.razor
+³       ³   ³   Routes.razor
+³       ³   ³   _Imports.razor
+³       ³   ³   
+³       ³   ÃÄÄÄLayout
+³       ³   ³       MainLayout.razor
+³       ³   ³       MainLayout.razor.css
+³       ³   ³       NavMenu.razor
+³       ³   ³       NavMenu.razor.css
+³       ³   ³       ReconnectModal.razor
+³       ³   ³       ReconnectModal.razor.css
+³       ³   ³       ReconnectModal.razor.js
+³       ³   ³       
+³       ³   ÀÄÄÄPages
+³       ³           Counter.razor
+³       ³           Error.razor
+³       ³           Home.razor
+³       ³           NotFound.razor
+³       ³           Weather.razor
+³       ³           
+³       ÃÄÄÄobj
+³       ³   ³   MultiSigSchnorr.Web.csproj.nuget.dgspec.json
+³       ³   ³   MultiSigSchnorr.Web.csproj.nuget.g.props
+³       ³   ³   MultiSigSchnorr.Web.csproj.nuget.g.targets
+³       ³   ³   project.assets.json
+³       ³   ³   project.nuget.cache
+³       ³   ³   
+³       ³   ÀÄÄÄDebug
+³       ³       ÀÄÄÄnet10.0
+³       ³           ³   .NETCoreApp,Version=v10.0.AssemblyAttributes.cs
+³       ³           ³   apphost.exe
+³       ³           ³   EmbeddedAttribute.cs
+³       ³           ³   MultiSig.8135E0AB.Up2Date
+³       ³           ³   MultiSigSchnorr.Web.AssemblyInfo.cs
+³       ³           ³   MultiSigSchnorr.Web.AssemblyInfoInputs.cache
+³       ³           ³   MultiSigSchnorr.Web.assets.cache
+³       ³           ³   MultiSigSchnorr.Web.csproj.AssemblyReference.cache
+³       ³           ³   MultiSigSchnorr.Web.csproj.CoreCompileInputs.cache
+³       ³           ³   MultiSigSchnorr.Web.csproj.FileListAbsolute.txt
+³       ³           ³   MultiSigSchnorr.Web.dll
+³       ³           ³   MultiSigSchnorr.Web.GeneratedMSBuildEditorConfig.editorconfig
+³       ³           ³   MultiSigSchnorr.Web.genruntimeconfig.cache
+³       ³           ³   MultiSigSchnorr.Web.GlobalUsings.g.cs
+³       ³           ³   MultiSigSchnorr.Web.MvcApplicationPartsAssemblyInfo.cache
+³       ³           ³   MultiSigSchnorr.Web.pdb
+³       ³           ³   rbcswa.dswa.cache.json
+³       ³           ³   rjimswa.dswa.cache.json
+³       ³           ³   rjsmcshtml.dswa.cache.json
+³       ³           ³   rjsmrazor.dswa.cache.json
+³       ³           ³   rpswa.dswa.cache.json
+³       ³           ³   staticwebassets.build.endpoints.json
+³       ³           ³   staticwebassets.build.json
+³       ³           ³   staticwebassets.build.json.cache
+³       ³           ³   staticwebassets.development.json
+³       ³           ³   swae.build.ex.cache
+³       ³           ³   ValidatableTypeAttribute.cs
+³       ³           ³   
+³       ³           ÃÄÄÄcompressed
+³       ³           ³       0d9hokyhm4-{0}-6pdc2jztkx-6pdc2jztkx.gz
+³       ³           ³       0hdm1uwfxw-{0}-fvhpjtyr6v-fvhpjtyr6v.gz
+³       ³           ³       0uq6jalmdt-{0}-pj5nd1wqec-pj5nd1wqec.gz
+³       ³           ³       0zulghkzu8-{0}-jj8uyg4cgr-jj8uyg4cgr.gz
+³       ³           ³       1bkhnkue76-{0}-v0zj4ognzu-v0zj4ognzu.gz
+³       ³           ³       1ccjit455k-{0}-hrwsygsryq-hrwsygsryq.gz
+³       ³           ³       2jafictqs2-{0}-b9228eflpl-b9228eflpl.gz
+³       ³           ³       5bfgqdty0r-{0}-khv3u5hwcm-khv3u5hwcm.gz
+³       ³           ³       6lpbdp0fae-{0}-jd9uben2k1-jd9uben2k1.gz
+³       ³           ³       6qg0km1gpm-{0}-493y06b0oq-493y06b0oq.gz
+³       ³           ³       75qb7sqzsz-{0}-cosvhxvwiu-cosvhxvwiu.gz
+³       ³           ³       7vhikts2cp-{0}-erw9l3u2r3-erw9l3u2r3.gz
+³       ³           ³       8zw53gt065-{0}-rzd6atqjts-rzd6atqjts.gz
+³       ³           ³       97rq2b5528-{0}-d7shbmvgxk-d7shbmvgxk.gz
+³       ³           ³       98y2ho1llo-{0}-lcd1t2u6c8-lcd1t2u6c8.gz
+³       ³           ³       99l5ox3bgz-{0}-notf2xhcfb-notf2xhcfb.gz
+³       ³           ³       9chdsdmaij-{0}-63fj8s7r0e-63fj8s7r0e.gz
+³       ³           ³       9q38kc78ir-{0}-46ein0sx1k-46ein0sx1k.gz
+³       ³           ³       arbnt1m6qx-{0}-fkx0ofqdwz-fkx0ofqdwz.gz
+³       ³           ³       axzo2ts8hp-{0}-y7v9cxd14o-y7v9cxd14o.gz
+³       ³           ³       bnbn5zt3ly-{0}-vr1egmr9el-vr1egmr9el.gz
+³       ³           ³       c0tjffsk7j-{0}-fsbi9cje9m-fsbi9cje9m.gz
+³       ³           ³       cosun435ap-{0}-c2oey78nd0-c2oey78nd0.gz
+³       ³           ³       d6fh8xliv2-{0}-ausgxo2sd3-ausgxo2sd3.gz
+³       ³           ³       d6rxcbg28e-{0}-abdmv1u4y3-abdmv1u4y3.gz
+³       ³           ³       dnyd1v1ji2-{0}-r4e9w2rdcm-r4e9w2rdcm.gz
+³       ³           ³       e6osft36bz-{0}-iovd86k7lj-iovd86k7lj.gz
+³       ³           ³       ef7t5qu9ss-{0}-37tfw0ft22-37tfw0ft22.gz
+³       ³           ³       f7thnzhpbs-{0}-bqjiyaj88i-bqjiyaj88i.gz
+³       ³           ³       h8nr5mempn-{0}-k8d9w2qqmf-k8d9w2qqmf.gz
+³       ³           ³       i7qlp5trzg-{0}-0j3bgjxly4-0j3bgjxly4.gz
+³       ³           ³       ipjm4zckrs-{0}-06098lyss8-06098lyss8.gz
+³       ³           ³       jwpbim3qg6-{0}-dxx9fxp4il-dxx9fxp4il.gz
+³       ³           ³       l3rjcbjkdr-{0}-j5mq2jizvt-j5mq2jizvt.gz
+³       ³           ³       m8wzb7s8ki-{0}-2tj1sjhksk-2tj1sjhksk.gz
+³       ³           ³       mmkfbypcmf-{0}-nvvlpmu67g-nvvlpmu67g.gz
+³       ³           ³       npnowpg25y-{0}-ub07r2b239-ub07r2b239.gz
+³       ³           ³       o67hdg5q44-{0}-h1s4sie4z3-h1s4sie4z3.gz
+³       ³           ³       ohfvfwha8b-{0}-ft3s53vfgj-ft3s53vfgj.gz
+³       ³           ³       ow60h1xplu-{0}-6cfz1n2cew-6cfz1n2cew.gz
+³       ³           ³       pn1od7b4qs-{0}-aexeepp0ev-aexeepp0ev.gz
+³       ³           ³       qqyf6b1qx2-{0}-khy4lop6wu-khy4lop6wu.gz
+³       ³           ³       rwzkjddl66-{0}-pk9g2wxc8p-pk9g2wxc8p.gz
+³       ³           ³       tebpgoi1sz-{0}-s35ty4nyc5-s35ty4nyc5.gz
+³       ³           ³       trgk4wahwa-{0}-fkx0ofqdwz-fkx0ofqdwz.gz
+³       ³           ³       u4hwxju8az-{0}-kbrnm935zg-kbrnm935zg.gz
+³       ³           ³       uvf70ppbga-{0}-b7pk76d08c-b7pk76d08c.gz
+³       ³           ³       wdx6xwwyyk-{0}-c2jlpeoesf-c2jlpeoesf.gz
+³       ³           ³       wv5k7c1o0k-{0}-tdbxkamptv-tdbxkamptv.gz
+³       ³           ³       yj0cwq5bkd-{0}-ee0r1s7dh0-ee0r1s7dh0.gz
+³       ³           ³       
+³       ³           ÃÄÄÄref
+³       ³           ³       MultiSigSchnorr.Web.dll
+³       ³           ³       
+³       ³           ÃÄÄÄrefint
+³       ³           ³       MultiSigSchnorr.Web.dll
+³       ³           ³       
+³       ³           ÃÄÄÄscopedcss
+³       ³           ³   ÃÄÄÄbundle
+³       ³           ³   ³       MultiSigSchnorr.Web.styles.css
+³       ³           ³   ³       
+³       ³           ³   ÃÄÄÄComponents
+³       ³           ³   ³   ÀÄÄÄLayout
+³       ³           ³   ³           MainLayout.razor.rz.scp.css
+³       ³           ³   ³           NavMenu.razor.rz.scp.css
+³       ³           ³   ³           ReconnectModal.razor.rz.scp.css
+³       ³           ³   ³           
+³       ³           ³   ÀÄÄÄprojectbundle
+³       ³           ³           MultiSigSchnorr.Web.bundle.scp.css
+³       ³           ³           
+³       ³           ÀÄÄÄstaticwebassets
+³       ÃÄÄÄProperties
+³       ³       launchSettings.json
+³       ³       
+³       ÀÄÄÄwwwroot
+³           ³   app.css
+³           ³   favicon.png
+³           ³   
+³           ÀÄÄÄlib
+³               ÀÄÄÄbootstrap
+³                   ÀÄÄÄdist
+³                       ÃÄÄÄcss
+³                       ³       bootstrap-grid.css
+³                       ³       bootstrap-grid.css.map
+³                       ³       bootstrap-grid.min.css
+³                       ³       bootstrap-grid.min.css.map
+³                       ³       bootstrap-grid.rtl.css
+³                       ³       bootstrap-grid.rtl.css.map
+³                       ³       bootstrap-grid.rtl.min.css
+³                       ³       bootstrap-grid.rtl.min.css.map
+³                       ³       bootstrap-reboot.css
+³                       ³       bootstrap-reboot.css.map
+³                       ³       bootstrap-reboot.min.css
+³                       ³       bootstrap-reboot.min.css.map
+³                       ³       bootstrap-reboot.rtl.css
+³                       ³       bootstrap-reboot.rtl.css.map
+³                       ³       bootstrap-reboot.rtl.min.css
+³                       ³       bootstrap-reboot.rtl.min.css.map
+³                       ³       bootstrap-utilities.css
+³                       ³       bootstrap-utilities.css.map
+³                       ³       bootstrap-utilities.min.css
+³                       ³       bootstrap-utilities.min.css.map
+³                       ³       bootstrap-utilities.rtl.css
+³                       ³       bootstrap-utilities.rtl.css.map
+³                       ³       bootstrap-utilities.rtl.min.css
+³                       ³       bootstrap-utilities.rtl.min.css.map
+³                       ³       bootstrap.css
+³                       ³       bootstrap.css.map
+³                       ³       bootstrap.min.css
+³                       ³       bootstrap.min.css.map
+³                       ³       bootstrap.rtl.css
+³                       ³       bootstrap.rtl.css.map
+³                       ³       bootstrap.rtl.min.css
+³                       ³       bootstrap.rtl.min.css.map
+³                       ³       
+³                       ÀÄÄÄjs
+³                               bootstrap.bundle.js
+³                               bootstrap.bundle.js.map
+³                               bootstrap.bundle.min.js
+³                               bootstrap.bundle.min.js.map
+³                               bootstrap.esm.js
+³                               bootstrap.esm.js.map
+³                               bootstrap.esm.min.js
+³                               bootstrap.esm.min.js.map
+³                               bootstrap.js
+³                               bootstrap.js.map
+³                               bootstrap.min.js
+³                               bootstrap.min.js.map
+³                               
+ÀÄÄÄtests
+    ÃÄÄÄMultiSigSchnorr.Benchmarks
+    ³   ³   MultiSigSchnorr.Benchmarks.csproj
+    ³   ³   Program.cs
+    ³   ³   
+    ³   ÃÄÄÄbin
+    ³   ³   ÀÄÄÄDebug
+    ³   ³       ÀÄÄÄnet10.0
+    ³   ³               MultiSigSchnorr.Benchmarks.deps.json
+    ³   ³               MultiSigSchnorr.Benchmarks.dll
+    ³   ³               MultiSigSchnorr.Benchmarks.exe
+    ³   ³               MultiSigSchnorr.Benchmarks.pdb
+    ³   ³               MultiSigSchnorr.Benchmarks.runtimeconfig.json
+    ³   ³               MultiSigSchnorr.Crypto.dll
+    ³   ³               MultiSigSchnorr.Crypto.pdb
+    ³   ³               MultiSigSchnorr.Domain.dll
+    ³   ³               MultiSigSchnorr.Domain.pdb
+    ³   ³               MultiSigSchnorr.Protocol.dll
+    ³   ³               MultiSigSchnorr.Protocol.pdb
+    ³   ³               
+    ³   ÀÄÄÄobj
+    ³       ³   MultiSigSchnorr.Benchmarks.csproj.nuget.dgspec.json
+    ³       ³   MultiSigSchnorr.Benchmarks.csproj.nuget.g.props
+    ³       ³   MultiSigSchnorr.Benchmarks.csproj.nuget.g.targets
+    ³       ³   project.assets.json
+    ³       ³   project.nuget.cache
+    ³       ³   
+    ³       ÀÄÄÄDebug
+    ³           ÀÄÄÄnet10.0
+    ³               ³   .NETCoreApp,Version=v10.0.AssemblyAttributes.cs
+    ³               ³   apphost.exe
+    ³               ³   MultiSig.5FFC7299.Up2Date
+    ³               ³   MultiSigSchnorr.Benchmarks.AssemblyInfo.cs
+    ³               ³   MultiSigSchnorr.Benchmarks.AssemblyInfoInputs.cache
+    ³               ³   MultiSigSchnorr.Benchmarks.assets.cache
+    ³               ³   MultiSigSchnorr.Benchmarks.csproj.AssemblyReference.cache
+    ³               ³   MultiSigSchnorr.Benchmarks.csproj.CoreCompileInputs.cache
+    ³               ³   MultiSigSchnorr.Benchmarks.csproj.FileListAbsolute.txt
+    ³               ³   MultiSigSchnorr.Benchmarks.dll
+    ³               ³   MultiSigSchnorr.Benchmarks.GeneratedMSBuildEditorConfig.editorconfig
+    ³               ³   MultiSigSchnorr.Benchmarks.genruntimeconfig.cache
+    ³               ³   MultiSigSchnorr.Benchmarks.GlobalUsings.g.cs
+    ³               ³   MultiSigSchnorr.Benchmarks.pdb
+    ³               ³   
+    ³               ÃÄÄÄref
+    ³               ³       MultiSigSchnorr.Benchmarks.dll
+    ³               ³       
+    ³               ÀÄÄÄrefint
+    ³                       MultiSigSchnorr.Benchmarks.dll
+    ³                       
+    ÃÄÄÄMultiSigSchnorr.Tests.CryptoVectors
+    ³   ³   MultiSigSchnorr.Tests.CryptoVectors.csproj
+    ³   ³   
+    ³   ÃÄÄÄbin
+    ³   ³   ÀÄÄÄDebug
+    ³   ³       ÀÄÄÄnet10.0
+    ³   ³           ³   .msCoverageSourceRootsMapping_MultiSigSchnorr.Tests.CryptoVectors
+    ³   ³           ³   CoverletSourceRootsMapping_MultiSigSchnorr.Tests.CryptoVectors
+    ³   ³           ³   Microsoft.TestPlatform.CommunicationUtilities.dll
+    ³   ³           ³   Microsoft.TestPlatform.CoreUtilities.dll
+    ³   ³           ³   Microsoft.TestPlatform.CrossPlatEngine.dll
+    ³   ³           ³   Microsoft.TestPlatform.PlatformAbstractions.dll
+    ³   ³           ³   Microsoft.TestPlatform.Utilities.dll
+    ³   ³           ³   Microsoft.VisualStudio.CodeCoverage.Shim.dll
+    ³   ³           ³   Microsoft.VisualStudio.TestPlatform.Common.dll
+    ³   ³           ³   Microsoft.VisualStudio.TestPlatform.ObjectModel.dll
+    ³   ³           ³   MultiSigSchnorr.Crypto.dll
+    ³   ³           ³   MultiSigSchnorr.Crypto.pdb
+    ³   ³           ³   MultiSigSchnorr.Domain.dll
+    ³   ³           ³   MultiSigSchnorr.Domain.pdb
+    ³   ³           ³   MultiSigSchnorr.Tests.CryptoVectors.deps.json
+    ³   ³           ³   MultiSigSchnorr.Tests.CryptoVectors.dll
+    ³   ³           ³   MultiSigSchnorr.Tests.CryptoVectors.pdb
+    ³   ³           ³   MultiSigSchnorr.Tests.CryptoVectors.runtimeconfig.json
+    ³   ³           ³   Newtonsoft.Json.dll
+    ³   ³           ³   testhost.dll
+    ³   ³           ³   testhost.exe
+    ³   ³           ³   xunit.abstractions.dll
+    ³   ³           ³   xunit.assert.dll
+    ³   ³           ³   xunit.core.dll
+    ³   ³           ³   xunit.execution.dotnet.dll
+    ³   ³           ³   xunit.runner.visualstudio.testadapter.dll
+    ³   ³           ³   
+    ³   ³           ÃÄÄÄcs
+    ³   ³           ³       Microsoft.TestPlatform.CommunicationUtilities.resources.dll
+    ³   ³           ³       Microsoft.TestPlatform.CoreUtilities.resources.dll
+    ³   ³           ³       Microsoft.TestPlatform.CrossPlatEngine.resources.dll
+    ³   ³           ³       Microsoft.VisualStudio.TestPlatform.Common.resources.dll
+    ³   ³           ³       Microsoft.VisualStudio.TestPlatform.ObjectModel.resources.dll
+    ³   ³           ³       
+    ³   ³           ÃÄÄÄde
+    ³   ³           ³       Microsoft.TestPlatform.CommunicationUtilities.resources.dll
+    ³   ³           ³       Microsoft.TestPlatform.CoreUtilities.resources.dll
+    ³   ³           ³       Microsoft.TestPlatform.CrossPlatEngine.resources.dll
+    ³   ³           ³       Microsoft.VisualStudio.TestPlatform.Common.resources.dll
+    ³   ³           ³       Microsoft.VisualStudio.TestPlatform.ObjectModel.resources.dll
+    ³   ³           ³       
+    ³   ³           ÃÄÄÄes
+    ³   ³           ³       Microsoft.TestPlatform.CommunicationUtilities.resources.dll
+    ³   ³           ³       Microsoft.TestPlatform.CoreUtilities.resources.dll
+    ³   ³           ³       Microsoft.TestPlatform.CrossPlatEngine.resources.dll
+    ³   ³           ³       Microsoft.VisualStudio.TestPlatform.Common.resources.dll
+    ³   ³           ³       Microsoft.VisualStudio.TestPlatform.ObjectModel.resources.dll
+    ³   ³           ³       
+    ³   ³           ÃÄÄÄfr
+    ³   ³           ³       Microsoft.TestPlatform.CommunicationUtilities.resources.dll
+    ³   ³           ³       Microsoft.TestPlatform.CoreUtilities.resources.dll
+    ³   ³           ³       Microsoft.TestPlatform.CrossPlatEngine.resources.dll
+    ³   ³           ³       Microsoft.VisualStudio.TestPlatform.Common.resources.dll
+    ³   ³           ³       Microsoft.VisualStudio.TestPlatform.ObjectModel.resources.dll
+    ³   ³           ³       
+    ³   ³           ÃÄÄÄit
+    ³   ³           ³       Microsoft.TestPlatform.CommunicationUtilities.resources.dll
+    ³   ³           ³       Microsoft.TestPlatform.CoreUtilities.resources.dll
+    ³   ³           ³       Microsoft.TestPlatform.CrossPlatEngine.resources.dll
+    ³   ³           ³       Microsoft.VisualStudio.TestPlatform.Common.resources.dll
+    ³   ³           ³       Microsoft.VisualStudio.TestPlatform.ObjectModel.resources.dll
+    ³   ³           ³       
+    ³   ³           ÃÄÄÄja
+    ³   ³           ³       Microsoft.TestPlatform.CommunicationUtilities.resources.dll
+    ³   ³           ³       Microsoft.TestPlatform.CoreUtilities.resources.dll
+    ³   ³           ³       Microsoft.TestPlatform.CrossPlatEngine.resources.dll
+    ³   ³           ³       Microsoft.VisualStudio.TestPlatform.Common.resources.dll
+    ³   ³           ³       Microsoft.VisualStudio.TestPlatform.ObjectModel.resources.dll
+    ³   ³           ³       
+    ³   ³           ÃÄÄÄko
+    ³   ³           ³       Microsoft.TestPlatform.CommunicationUtilities.resources.dll
+    ³   ³           ³       Microsoft.TestPlatform.CoreUtilities.resources.dll
+    ³   ³           ³       Microsoft.TestPlatform.CrossPlatEngine.resources.dll
+    ³   ³           ³       Microsoft.VisualStudio.TestPlatform.Common.resources.dll
+    ³   ³           ³       Microsoft.VisualStudio.TestPlatform.ObjectModel.resources.dll
+    ³   ³           ³       
+    ³   ³           ÃÄÄÄpl
+    ³   ³           ³       Microsoft.TestPlatform.CommunicationUtilities.resources.dll
+    ³   ³           ³       Microsoft.TestPlatform.CoreUtilities.resources.dll
+    ³   ³           ³       Microsoft.TestPlatform.CrossPlatEngine.resources.dll
+    ³   ³           ³       Microsoft.VisualStudio.TestPlatform.Common.resources.dll
+    ³   ³           ³       Microsoft.VisualStudio.TestPlatform.ObjectModel.resources.dll
+    ³   ³           ³       
+    ³   ³           ÃÄÄÄpt-BR
+    ³   ³           ³       Microsoft.TestPlatform.CommunicationUtilities.resources.dll
+    ³   ³           ³       Microsoft.TestPlatform.CoreUtilities.resources.dll
+    ³   ³           ³       Microsoft.TestPlatform.CrossPlatEngine.resources.dll
+    ³   ³           ³       Microsoft.VisualStudio.TestPlatform.Common.resources.dll
+    ³   ³           ³       Microsoft.VisualStudio.TestPlatform.ObjectModel.resources.dll
+    ³   ³           ³       
+    ³   ³           ÃÄÄÄru
+    ³   ³           ³       Microsoft.TestPlatform.CommunicationUtilities.resources.dll
+    ³   ³           ³       Microsoft.TestPlatform.CoreUtilities.resources.dll
+    ³   ³           ³       Microsoft.TestPlatform.CrossPlatEngine.resources.dll
+    ³   ³           ³       Microsoft.VisualStudio.TestPlatform.Common.resources.dll
+    ³   ³           ³       Microsoft.VisualStudio.TestPlatform.ObjectModel.resources.dll
+    ³   ³           ³       
+    ³   ³           ÃÄÄÄtr
+    ³   ³           ³       Microsoft.TestPlatform.CommunicationUtilities.resources.dll
+    ³   ³           ³       Microsoft.TestPlatform.CoreUtilities.resources.dll
+    ³   ³           ³       Microsoft.TestPlatform.CrossPlatEngine.resources.dll
+    ³   ³           ³       Microsoft.VisualStudio.TestPlatform.Common.resources.dll
+    ³   ³           ³       Microsoft.VisualStudio.TestPlatform.ObjectModel.resources.dll
+    ³   ³           ³       
+    ³   ³           ÃÄÄÄzh-Hans
+    ³   ³           ³       Microsoft.TestPlatform.CommunicationUtilities.resources.dll
+    ³   ³           ³       Microsoft.TestPlatform.CoreUtilities.resources.dll
+    ³   ³           ³       Microsoft.TestPlatform.CrossPlatEngine.resources.dll
+    ³   ³           ³       Microsoft.VisualStudio.TestPlatform.Common.resources.dll
+    ³   ³           ³       Microsoft.VisualStudio.TestPlatform.ObjectModel.resources.dll
+    ³   ³           ³       
+    ³   ³           ÀÄÄÄzh-Hant
+    ³   ³                   Microsoft.TestPlatform.CommunicationUtilities.resources.dll
+    ³   ³                   Microsoft.TestPlatform.CoreUtilities.resources.dll
+    ³   ³                   Microsoft.TestPlatform.CrossPlatEngine.resources.dll
+    ³   ³                   Microsoft.VisualStudio.TestPlatform.Common.resources.dll
+    ³   ³                   Microsoft.VisualStudio.TestPlatform.ObjectModel.resources.dll
+    ³   ³                   
+    ³   ÀÄÄÄobj
+    ³       ³   MultiSigSchnorr.Tests.CryptoVectors.csproj.nuget.dgspec.json
+    ³       ³   MultiSigSchnorr.Tests.CryptoVectors.csproj.nuget.g.props
+    ³       ³   MultiSigSchnorr.Tests.CryptoVectors.csproj.nuget.g.targets
+    ³       ³   project.assets.json
+    ³       ³   project.nuget.cache
+    ³       ³   
+    ³       ÀÄÄÄDebug
+    ³           ÀÄÄÄnet10.0
+    ³               ³   .NETCoreApp,Version=v10.0.AssemblyAttributes.cs
+    ³               ³   MultiSig.E609454F.Up2Date
+    ³               ³   MultiSigSchnorr.Tests.CryptoVectors.AssemblyInfo.cs
+    ³               ³   MultiSigSchnorr.Tests.CryptoVectors.AssemblyInfoInputs.cache
+    ³               ³   MultiSigSchnorr.Tests.CryptoVectors.assets.cache
+    ³               ³   MultiSigSchnorr.Tests.CryptoVectors.csproj.AssemblyReference.cache
+    ³               ³   MultiSigSchnorr.Tests.CryptoVectors.csproj.CoreCompileInputs.cache
+    ³               ³   MultiSigSchnorr.Tests.CryptoVectors.csproj.FileListAbsolute.txt
+    ³               ³   MultiSigSchnorr.Tests.CryptoVectors.dll
+    ³               ³   MultiSigSchnorr.Tests.CryptoVectors.GeneratedMSBuildEditorConfig.editorconfig
+    ³               ³   MultiSigSchnorr.Tests.CryptoVectors.genruntimeconfig.cache
+    ³               ³   MultiSigSchnorr.Tests.CryptoVectors.GlobalUsings.g.cs
+    ³               ³   MultiSigSchnorr.Tests.CryptoVectors.pdb
+    ³               ³   
+    ³               ÃÄÄÄref
+    ³               ³       MultiSigSchnorr.Tests.CryptoVectors.dll
+    ³               ³       
+    ³               ÀÄÄÄrefint
+    ³                       MultiSigSchnorr.Tests.CryptoVectors.dll
+    ³                       
+    ÃÄÄÄMultiSigSchnorr.Tests.Integration
+    ³   ³   MultiSigSchnorr.Tests.Integration.csproj
+    ³   ³   
+    ³   ÃÄÄÄbin
+    ³   ³   ÀÄÄÄDebug
+    ³   ³       ÀÄÄÄnet10.0
+    ³   ³           ³   .msCoverageSourceRootsMapping_MultiSigSchnorr.Tests.Integration
+    ³   ³           ³   appsettings.Development.json
+    ³   ³           ³   appsettings.json
+    ³   ³           ³   CoverletSourceRootsMapping_MultiSigSchnorr.Tests.Integration
+    ³   ³           ³   Microsoft.AspNetCore.OpenApi.dll
+    ³   ³           ³   Microsoft.OpenApi.dll
+    ³   ³           ³   Microsoft.TestPlatform.CommunicationUtilities.dll
+    ³   ³           ³   Microsoft.TestPlatform.CoreUtilities.dll
+    ³   ³           ³   Microsoft.TestPlatform.CrossPlatEngine.dll
+    ³   ³           ³   Microsoft.TestPlatform.PlatformAbstractions.dll
+    ³   ³           ³   Microsoft.TestPlatform.Utilities.dll
+    ³   ³           ³   Microsoft.VisualStudio.CodeCoverage.Shim.dll
+    ³   ³           ³   Microsoft.VisualStudio.TestPlatform.Common.dll
+    ³   ³           ³   Microsoft.VisualStudio.TestPlatform.ObjectModel.dll
+    ³   ³           ³   MultiSigSchnorr.Api.deps.json
+    ³   ³           ³   MultiSigSchnorr.Api.dll
+    ³   ³           ³   MultiSigSchnorr.Api.exe
+    ³   ³           ³   MultiSigSchnorr.Api.pdb
+    ³   ³           ³   MultiSigSchnorr.Api.runtimeconfig.json
+    ³   ³           ³   MultiSigSchnorr.Api.staticwebassets.endpoints.json
+    ³   ³           ³   MultiSigSchnorr.Application.dll
+    ³   ³           ³   MultiSigSchnorr.Application.pdb
+    ³   ³           ³   MultiSigSchnorr.Contracts.dll
+    ³   ³           ³   MultiSigSchnorr.Contracts.pdb
+    ³   ³           ³   MultiSigSchnorr.Crypto.dll
+    ³   ³           ³   MultiSigSchnorr.Crypto.pdb
+    ³   ³           ³   MultiSigSchnorr.Domain.dll
+    ³   ³           ³   MultiSigSchnorr.Domain.pdb
+    ³   ³           ³   MultiSigSchnorr.Infrastructure.dll
+    ³   ³           ³   MultiSigSchnorr.Infrastructure.pdb
+    ³   ³           ³   MultiSigSchnorr.Protocol.dll
+    ³   ³           ³   MultiSigSchnorr.Protocol.pdb
+    ³   ³           ³   MultiSigSchnorr.Tests.Integration.deps.json
+    ³   ³           ³   MultiSigSchnorr.Tests.Integration.dll
+    ³   ³           ³   MultiSigSchnorr.Tests.Integration.pdb
+    ³   ³           ³   MultiSigSchnorr.Tests.Integration.runtimeconfig.json
+    ³   ³           ³   Newtonsoft.Json.dll
+    ³   ³           ³   testhost.dll
+    ³   ³           ³   testhost.exe
+    ³   ³           ³   xunit.abstractions.dll
+    ³   ³           ³   xunit.assert.dll
+    ³   ³           ³   xunit.core.dll
+    ³   ³           ³   xunit.execution.dotnet.dll
+    ³   ³           ³   xunit.runner.visualstudio.testadapter.dll
+    ³   ³           ³   
+    ³   ³           ÃÄÄÄcs
+    ³   ³           ³       Microsoft.TestPlatform.CommunicationUtilities.resources.dll
+    ³   ³           ³       Microsoft.TestPlatform.CoreUtilities.resources.dll
+    ³   ³           ³       Microsoft.TestPlatform.CrossPlatEngine.resources.dll
+    ³   ³           ³       Microsoft.VisualStudio.TestPlatform.Common.resources.dll
+    ³   ³           ³       Microsoft.VisualStudio.TestPlatform.ObjectModel.resources.dll
+    ³   ³           ³       
+    ³   ³           ÃÄÄÄde
+    ³   ³           ³       Microsoft.TestPlatform.CommunicationUtilities.resources.dll
+    ³   ³           ³       Microsoft.TestPlatform.CoreUtilities.resources.dll
+    ³   ³           ³       Microsoft.TestPlatform.CrossPlatEngine.resources.dll
+    ³   ³           ³       Microsoft.VisualStudio.TestPlatform.Common.resources.dll
+    ³   ³           ³       Microsoft.VisualStudio.TestPlatform.ObjectModel.resources.dll
+    ³   ³           ³       
+    ³   ³           ÃÄÄÄes
+    ³   ³           ³       Microsoft.TestPlatform.CommunicationUtilities.resources.dll
+    ³   ³           ³       Microsoft.TestPlatform.CoreUtilities.resources.dll
+    ³   ³           ³       Microsoft.TestPlatform.CrossPlatEngine.resources.dll
+    ³   ³           ³       Microsoft.VisualStudio.TestPlatform.Common.resources.dll
+    ³   ³           ³       Microsoft.VisualStudio.TestPlatform.ObjectModel.resources.dll
+    ³   ³           ³       
+    ³   ³           ÃÄÄÄfr
+    ³   ³           ³       Microsoft.TestPlatform.CommunicationUtilities.resources.dll
+    ³   ³           ³       Microsoft.TestPlatform.CoreUtilities.resources.dll
+    ³   ³           ³       Microsoft.TestPlatform.CrossPlatEngine.resources.dll
+    ³   ³           ³       Microsoft.VisualStudio.TestPlatform.Common.resources.dll
+    ³   ³           ³       Microsoft.VisualStudio.TestPlatform.ObjectModel.resources.dll
+    ³   ³           ³       
+    ³   ³           ÃÄÄÄit
+    ³   ³           ³       Microsoft.TestPlatform.CommunicationUtilities.resources.dll
+    ³   ³           ³       Microsoft.TestPlatform.CoreUtilities.resources.dll
+    ³   ³           ³       Microsoft.TestPlatform.CrossPlatEngine.resources.dll
+    ³   ³           ³       Microsoft.VisualStudio.TestPlatform.Common.resources.dll
+    ³   ³           ³       Microsoft.VisualStudio.TestPlatform.ObjectModel.resources.dll
+    ³   ³           ³       
+    ³   ³           ÃÄÄÄja
+    ³   ³           ³       Microsoft.TestPlatform.CommunicationUtilities.resources.dll
+    ³   ³           ³       Microsoft.TestPlatform.CoreUtilities.resources.dll
+    ³   ³           ³       Microsoft.TestPlatform.CrossPlatEngine.resources.dll
+    ³   ³           ³       Microsoft.VisualStudio.TestPlatform.Common.resources.dll
+    ³   ³           ³       Microsoft.VisualStudio.TestPlatform.ObjectModel.resources.dll
+    ³   ³           ³       
+    ³   ³           ÃÄÄÄko
+    ³   ³           ³       Microsoft.TestPlatform.CommunicationUtilities.resources.dll
+    ³   ³           ³       Microsoft.TestPlatform.CoreUtilities.resources.dll
+    ³   ³           ³       Microsoft.TestPlatform.CrossPlatEngine.resources.dll
+    ³   ³           ³       Microsoft.VisualStudio.TestPlatform.Common.resources.dll
+    ³   ³           ³       Microsoft.VisualStudio.TestPlatform.ObjectModel.resources.dll
+    ³   ³           ³       
+    ³   ³           ÃÄÄÄpl
+    ³   ³           ³       Microsoft.TestPlatform.CommunicationUtilities.resources.dll
+    ³   ³           ³       Microsoft.TestPlatform.CoreUtilities.resources.dll
+    ³   ³           ³       Microsoft.TestPlatform.CrossPlatEngine.resources.dll
+    ³   ³           ³       Microsoft.VisualStudio.TestPlatform.Common.resources.dll
+    ³   ³           ³       Microsoft.VisualStudio.TestPlatform.ObjectModel.resources.dll
+    ³   ³           ³       
+    ³   ³           ÃÄÄÄpt-BR
+    ³   ³           ³       Microsoft.TestPlatform.CommunicationUtilities.resources.dll
+    ³   ³           ³       Microsoft.TestPlatform.CoreUtilities.resources.dll
+    ³   ³           ³       Microsoft.TestPlatform.CrossPlatEngine.resources.dll
+    ³   ³           ³       Microsoft.VisualStudio.TestPlatform.Common.resources.dll
+    ³   ³           ³       Microsoft.VisualStudio.TestPlatform.ObjectModel.resources.dll
+    ³   ³           ³       
+    ³   ³           ÃÄÄÄru
+    ³   ³           ³       Microsoft.TestPlatform.CommunicationUtilities.resources.dll
+    ³   ³           ³       Microsoft.TestPlatform.CoreUtilities.resources.dll
+    ³   ³           ³       Microsoft.TestPlatform.CrossPlatEngine.resources.dll
+    ³   ³           ³       Microsoft.VisualStudio.TestPlatform.Common.resources.dll
+    ³   ³           ³       Microsoft.VisualStudio.TestPlatform.ObjectModel.resources.dll
+    ³   ³           ³       
+    ³   ³           ÃÄÄÄtr
+    ³   ³           ³       Microsoft.TestPlatform.CommunicationUtilities.resources.dll
+    ³   ³           ³       Microsoft.TestPlatform.CoreUtilities.resources.dll
+    ³   ³           ³       Microsoft.TestPlatform.CrossPlatEngine.resources.dll
+    ³   ³           ³       Microsoft.VisualStudio.TestPlatform.Common.resources.dll
+    ³   ³           ³       Microsoft.VisualStudio.TestPlatform.ObjectModel.resources.dll
+    ³   ³           ³       
+    ³   ³           ÃÄÄÄzh-Hans
+    ³   ³           ³       Microsoft.TestPlatform.CommunicationUtilities.resources.dll
+    ³   ³           ³       Microsoft.TestPlatform.CoreUtilities.resources.dll
+    ³   ³           ³       Microsoft.TestPlatform.CrossPlatEngine.resources.dll
+    ³   ³           ³       Microsoft.VisualStudio.TestPlatform.Common.resources.dll
+    ³   ³           ³       Microsoft.VisualStudio.TestPlatform.ObjectModel.resources.dll
+    ³   ³           ³       
+    ³   ³           ÀÄÄÄzh-Hant
+    ³   ³                   Microsoft.TestPlatform.CommunicationUtilities.resources.dll
+    ³   ³                   Microsoft.TestPlatform.CoreUtilities.resources.dll
+    ³   ³                   Microsoft.TestPlatform.CrossPlatEngine.resources.dll
+    ³   ³                   Microsoft.VisualStudio.TestPlatform.Common.resources.dll
+    ³   ³                   Microsoft.VisualStudio.TestPlatform.ObjectModel.resources.dll
+    ³   ³                   
+    ³   ÀÄÄÄobj
+    ³       ³   MultiSigSchnorr.Tests.Integration.csproj.nuget.dgspec.json
+    ³       ³   MultiSigSchnorr.Tests.Integration.csproj.nuget.g.props
+    ³       ³   MultiSigSchnorr.Tests.Integration.csproj.nuget.g.targets
+    ³       ³   project.assets.json
+    ³       ³   project.nuget.cache
+    ³       ³   
+    ³       ÀÄÄÄDebug
+    ³           ÀÄÄÄnet10.0
+    ³               ³   .NETCoreApp,Version=v10.0.AssemblyAttributes.cs
+    ³               ³   MultiSig.26F95C61.Up2Date
+    ³               ³   MultiSigSchnorr.Tests.Integration.AssemblyInfo.cs
+    ³               ³   MultiSigSchnorr.Tests.Integration.AssemblyInfoInputs.cache
+    ³               ³   MultiSigSchnorr.Tests.Integration.assets.cache
+    ³               ³   MultiSigSchnorr.Tests.Integration.csproj.AssemblyReference.cache
+    ³               ³   MultiSigSchnorr.Tests.Integration.csproj.CoreCompileInputs.cache
+    ³               ³   MultiSigSchnorr.Tests.Integration.csproj.FileListAbsolute.txt
+    ³               ³   MultiSigSchnorr.Tests.Integration.dll
+    ³               ³   MultiSigSchnorr.Tests.Integration.GeneratedMSBuildEditorConfig.editorconfig
+    ³               ³   MultiSigSchnorr.Tests.Integration.genruntimeconfig.cache
+    ³               ³   MultiSigSchnorr.Tests.Integration.GlobalUsings.g.cs
+    ³               ³   MultiSigSchnorr.Tests.Integration.pdb
+    ³               ³   
+    ³               ÃÄÄÄref
+    ³               ³       MultiSigSchnorr.Tests.Integration.dll
+    ³               ³       
+    ³               ÀÄÄÄrefint
+    ³                       MultiSigSchnorr.Tests.Integration.dll
+    ³                       
+    ÀÄÄÄMultiSigSchnorr.Tests.Unit
+        ³   MultiSigSchnorr.Tests.Unit.csproj
+        ³   
+        ÃÄÄÄbin
+        ³   ÀÄÄÄDebug
+        ³       ÀÄÄÄnet10.0
+        ³           ³   .msCoverageSourceRootsMapping_MultiSigSchnorr.Tests.Unit
+        ³           ³   CoverletSourceRootsMapping_MultiSigSchnorr.Tests.Unit
+        ³           ³   Microsoft.TestPlatform.CommunicationUtilities.dll
+        ³           ³   Microsoft.TestPlatform.CoreUtilities.dll
+        ³           ³   Microsoft.TestPlatform.CrossPlatEngine.dll
+        ³           ³   Microsoft.TestPlatform.PlatformAbstractions.dll
+        ³           ³   Microsoft.TestPlatform.Utilities.dll
+        ³           ³   Microsoft.VisualStudio.CodeCoverage.Shim.dll
+        ³           ³   Microsoft.VisualStudio.TestPlatform.Common.dll
+        ³           ³   Microsoft.VisualStudio.TestPlatform.ObjectModel.dll
+        ³           ³   MultiSigSchnorr.Application.dll
+        ³           ³   MultiSigSchnorr.Application.pdb
+        ³           ³   MultiSigSchnorr.Contracts.dll
+        ³           ³   MultiSigSchnorr.Contracts.pdb
+        ³           ³   MultiSigSchnorr.Crypto.dll
+        ³           ³   MultiSigSchnorr.Crypto.pdb
+        ³           ³   MultiSigSchnorr.Domain.dll
+        ³           ³   MultiSigSchnorr.Domain.pdb
+        ³           ³   MultiSigSchnorr.Protocol.dll
+        ³           ³   MultiSigSchnorr.Protocol.pdb
+        ³           ³   MultiSigSchnorr.Tests.Unit.deps.json
+        ³           ³   MultiSigSchnorr.Tests.Unit.dll
+        ³           ³   MultiSigSchnorr.Tests.Unit.pdb
+        ³           ³   MultiSigSchnorr.Tests.Unit.runtimeconfig.json
+        ³           ³   Newtonsoft.Json.dll
+        ³           ³   testhost.dll
+        ³           ³   testhost.exe
+        ³           ³   xunit.abstractions.dll
+        ³           ³   xunit.assert.dll
+        ³           ³   xunit.core.dll
+        ³           ³   xunit.execution.dotnet.dll
+        ³           ³   xunit.runner.visualstudio.testadapter.dll
+        ³           ³   
+        ³           ÃÄÄÄcs
+        ³           ³       Microsoft.TestPlatform.CommunicationUtilities.resources.dll
+        ³           ³       Microsoft.TestPlatform.CoreUtilities.resources.dll
+        ³           ³       Microsoft.TestPlatform.CrossPlatEngine.resources.dll
+        ³           ³       Microsoft.VisualStudio.TestPlatform.Common.resources.dll
+        ³           ³       Microsoft.VisualStudio.TestPlatform.ObjectModel.resources.dll
+        ³           ³       
+        ³           ÃÄÄÄde
+        ³           ³       Microsoft.TestPlatform.CommunicationUtilities.resources.dll
+        ³           ³       Microsoft.TestPlatform.CoreUtilities.resources.dll
+        ³           ³       Microsoft.TestPlatform.CrossPlatEngine.resources.dll
+        ³           ³       Microsoft.VisualStudio.TestPlatform.Common.resources.dll
+        ³           ³       Microsoft.VisualStudio.TestPlatform.ObjectModel.resources.dll
+        ³           ³       
+        ³           ÃÄÄÄes
+        ³           ³       Microsoft.TestPlatform.CommunicationUtilities.resources.dll
+        ³           ³       Microsoft.TestPlatform.CoreUtilities.resources.dll
+        ³           ³       Microsoft.TestPlatform.CrossPlatEngine.resources.dll
+        ³           ³       Microsoft.VisualStudio.TestPlatform.Common.resources.dll
+        ³           ³       Microsoft.VisualStudio.TestPlatform.ObjectModel.resources.dll
+        ³           ³       
+        ³           ÃÄÄÄfr
+        ³           ³       Microsoft.TestPlatform.CommunicationUtilities.resources.dll
+        ³           ³       Microsoft.TestPlatform.CoreUtilities.resources.dll
+        ³           ³       Microsoft.TestPlatform.CrossPlatEngine.resources.dll
+        ³           ³       Microsoft.VisualStudio.TestPlatform.Common.resources.dll
+        ³           ³       Microsoft.VisualStudio.TestPlatform.ObjectModel.resources.dll
+        ³           ³       
+        ³           ÃÄÄÄit
+        ³           ³       Microsoft.TestPlatform.CommunicationUtilities.resources.dll
+        ³           ³       Microsoft.TestPlatform.CoreUtilities.resources.dll
+        ³           ³       Microsoft.TestPlatform.CrossPlatEngine.resources.dll
+        ³           ³       Microsoft.VisualStudio.TestPlatform.Common.resources.dll
+        ³           ³       Microsoft.VisualStudio.TestPlatform.ObjectModel.resources.dll
+        ³           ³       
+        ³           ÃÄÄÄja
+        ³           ³       Microsoft.TestPlatform.CommunicationUtilities.resources.dll
+        ³           ³       Microsoft.TestPlatform.CoreUtilities.resources.dll
+        ³           ³       Microsoft.TestPlatform.CrossPlatEngine.resources.dll
+        ³           ³       Microsoft.VisualStudio.TestPlatform.Common.resources.dll
+        ³           ³       Microsoft.VisualStudio.TestPlatform.ObjectModel.resources.dll
+        ³           ³       
+        ³           ÃÄÄÄko
+        ³           ³       Microsoft.TestPlatform.CommunicationUtilities.resources.dll
+        ³           ³       Microsoft.TestPlatform.CoreUtilities.resources.dll
+        ³           ³       Microsoft.TestPlatform.CrossPlatEngine.resources.dll
+        ³           ³       Microsoft.VisualStudio.TestPlatform.Common.resources.dll
+        ³           ³       Microsoft.VisualStudio.TestPlatform.ObjectModel.resources.dll
+        ³           ³       
+        ³           ÃÄÄÄpl
+        ³           ³       Microsoft.TestPlatform.CommunicationUtilities.resources.dll
+        ³           ³       Microsoft.TestPlatform.CoreUtilities.resources.dll
+        ³           ³       Microsoft.TestPlatform.CrossPlatEngine.resources.dll
+        ³           ³       Microsoft.VisualStudio.TestPlatform.Common.resources.dll
+        ³           ³       Microsoft.VisualStudio.TestPlatform.ObjectModel.resources.dll
+        ³           ³       
+        ³           ÃÄÄÄpt-BR
+        ³           ³       Microsoft.TestPlatform.CommunicationUtilities.resources.dll
+        ³           ³       Microsoft.TestPlatform.CoreUtilities.resources.dll
+        ³           ³       Microsoft.TestPlatform.CrossPlatEngine.resources.dll
+        ³           ³       Microsoft.VisualStudio.TestPlatform.Common.resources.dll
+        ³           ³       Microsoft.VisualStudio.TestPlatform.ObjectModel.resources.dll
+        ³           ³       
+        ³           ÃÄÄÄru
+        ³           ³       Microsoft.TestPlatform.CommunicationUtilities.resources.dll
+        ³           ³       Microsoft.TestPlatform.CoreUtilities.resources.dll
+        ³           ³       Microsoft.TestPlatform.CrossPlatEngine.resources.dll
+        ³           ³       Microsoft.VisualStudio.TestPlatform.Common.resources.dll
+        ³           ³       Microsoft.VisualStudio.TestPlatform.ObjectModel.resources.dll
+        ³           ³       
+        ³           ÃÄÄÄtr
+        ³           ³       Microsoft.TestPlatform.CommunicationUtilities.resources.dll
+        ³           ³       Microsoft.TestPlatform.CoreUtilities.resources.dll
+        ³           ³       Microsoft.TestPlatform.CrossPlatEngine.resources.dll
+        ³           ³       Microsoft.VisualStudio.TestPlatform.Common.resources.dll
+        ³           ³       Microsoft.VisualStudio.TestPlatform.ObjectModel.resources.dll
+        ³           ³       
+        ³           ÃÄÄÄzh-Hans
+        ³           ³       Microsoft.TestPlatform.CommunicationUtilities.resources.dll
+        ³           ³       Microsoft.TestPlatform.CoreUtilities.resources.dll
+        ³           ³       Microsoft.TestPlatform.CrossPlatEngine.resources.dll
+        ³           ³       Microsoft.VisualStudio.TestPlatform.Common.resources.dll
+        ³           ³       Microsoft.VisualStudio.TestPlatform.ObjectModel.resources.dll
+        ³           ³       
+        ³           ÀÄÄÄzh-Hant
+        ³                   Microsoft.TestPlatform.CommunicationUtilities.resources.dll
+        ³                   Microsoft.TestPlatform.CoreUtilities.resources.dll
+        ³                   Microsoft.TestPlatform.CrossPlatEngine.resources.dll
+        ³                   Microsoft.VisualStudio.TestPlatform.Common.resources.dll
+        ³                   Microsoft.VisualStudio.TestPlatform.ObjectModel.resources.dll
+        ³                   
+        ÀÄÄÄobj
+            ³   MultiSigSchnorr.Tests.Unit.csproj.nuget.dgspec.json
+            ³   MultiSigSchnorr.Tests.Unit.csproj.nuget.g.props
+            ³   MultiSigSchnorr.Tests.Unit.csproj.nuget.g.targets
+            ³   project.assets.json
+            ³   project.nuget.cache
+            ³   
+            ÀÄÄÄDebug
+                ÀÄÄÄnet10.0
+                    ³   .NETCoreApp,Version=v10.0.AssemblyAttributes.cs
+                    ³   MultiSig.CC60A9DB.Up2Date
+                    ³   MultiSigSchnorr.Tests.Unit.AssemblyInfo.cs
+                    ³   MultiSigSchnorr.Tests.Unit.AssemblyInfoInputs.cache
+                    ³   MultiSigSchnorr.Tests.Unit.assets.cache
+                    ³   MultiSigSchnorr.Tests.Unit.csproj.AssemblyReference.cache
+                    ³   MultiSigSchnorr.Tests.Unit.csproj.CoreCompileInputs.cache
+                    ³   MultiSigSchnorr.Tests.Unit.csproj.FileListAbsolute.txt
+                    ³   MultiSigSchnorr.Tests.Unit.dll
+                    ³   MultiSigSchnorr.Tests.Unit.GeneratedMSBuildEditorConfig.editorconfig
+                    ³   MultiSigSchnorr.Tests.Unit.genruntimeconfig.cache
+                    ³   MultiSigSchnorr.Tests.Unit.GlobalUsings.g.cs
+                    ³   MultiSigSchnorr.Tests.Unit.pdb
+                    ³   
+                    ÃÄÄÄref
+                    ³       MultiSigSchnorr.Tests.Unit.dll
+                    ³       
+                    ÀÄÄÄrefint
+                            MultiSigSchnorr.Tests.Unit.dll
+                            

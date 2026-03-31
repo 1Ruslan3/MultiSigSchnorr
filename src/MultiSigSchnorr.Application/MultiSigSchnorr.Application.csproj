@@ -1,0 +1,15 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\MultiSigSchnorr.Domain\MultiSigSchnorr.Domain.csproj" />
+    <ProjectReference Include="..\MultiSigSchnorr.Protocol\MultiSigSchnorr.Protocol.csproj" />
+    <ProjectReference Include="..\MultiSigSchnorr.Contracts\MultiSigSchnorr.Contracts.csproj" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+</Project>
