@@ -40,7 +40,7 @@ public sealed class IndividualSchnorrSigner : IIndividualSchnorrSigner
             messageDigest);
 
         var cx = ScalarMath.MultiplyMod(_curveContext, challenge, privateKey);
-        var s = ScalarMath.AddMod(_curveContext, nonce, cx);
+        var s = ScalarMath.SubtractMod(_curveContext, nonce, cx);
 
         return new SchnorrSignature(
             noncePoint,

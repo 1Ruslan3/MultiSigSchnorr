@@ -39,10 +39,10 @@ public sealed class IndividualSchnorrVerifier : IIndividualSchnorrVerifier
             publicKey,
             messageDigest);
 
-        var left = _curveContext.MultiplyBasePoint(signature.SignatureScalar.Value);
-        var challengePublicKey = _curveContext.MultiplyPoint(publicKey.Point, challenge);
-        var right = _curveContext.AddPoints(signature.NoncePoint, challengePublicKey);
+        var sG = _curveContext.MultiplyBasePoint(signature.SignatureScalar.Value);
+        var eX = _curveContext.MultiplyPoint(publicKey.Point, challenge);
+        var right = _curveContext.AddPoints(sG, eX);
 
-        return left.Equals(right);
+        return signature.NoncePoint.Equals(right);
     }
 }

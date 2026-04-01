@@ -26,7 +26,7 @@ public sealed class PartialSignatureService : IPartialSignatureService
 
         var ax = ScalarMath.MultiplyMod(_curveContext, aggregationCoefficient, privateKey);
         var cax = ScalarMath.MultiplyMod(_curveContext, challenge, ax);
-        var s = ScalarMath.AddMod(_curveContext, nonce, cax);
+        var s = ScalarMath.SubtractMod(_curveContext, nonce, cax);
 
         return new SignatureScalarValue(s);
     }

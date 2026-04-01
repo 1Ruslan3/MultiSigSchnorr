@@ -19,6 +19,19 @@ public static class ScalarMath
         return ToScalar(curveContext, result);
     }
 
+    public static ScalarValue SubtractMod(ICurveContext curveContext, ScalarValue left, ScalarValue right)
+    {
+        ArgumentNullException.ThrowIfNull(curveContext);
+        ArgumentNullException.ThrowIfNull(left);
+        ArgumentNullException.ThrowIfNull(right);
+
+        var l = ToBigInteger(left);
+        var r = ToBigInteger(right);
+        var result = Mod(l - r, curveContext.Order);
+
+        return ToScalar(curveContext, result);
+    }
+
     public static ScalarValue MultiplyMod(ICurveContext curveContext, ScalarValue left, ScalarValue right)
     {
         ArgumentNullException.ThrowIfNull(curveContext);

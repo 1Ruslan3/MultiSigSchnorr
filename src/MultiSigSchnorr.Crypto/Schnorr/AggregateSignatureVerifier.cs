@@ -40,11 +40,10 @@ public sealed class AggregateSignatureVerifier : IAggregateSignatureVerifier
             aggregatePublicKey,
             messageDigest);
 
-        var left = _curveContext.MultiplyBasePoint(signature.SignatureScalar.Value);
-        var right = _curveContext.AddPoints(
-            signature.AggregateNoncePoint,
-            _curveContext.MultiplyPoint(aggregatePublicKey.Point, challenge));
+        var sG = _curveContext.MultiplyBasePoint(signature.SignatureScalar.Value);
+        var eX = _curveContext.MultiplyPoint(aggregatePublicKey.Point, challenge);
+        var right = _curveContext.AddPoints(sG, eX);
 
-        return left.Equals(right);
+        return signature.AggregateNoncePoint.Equals(right);
     }
 }
