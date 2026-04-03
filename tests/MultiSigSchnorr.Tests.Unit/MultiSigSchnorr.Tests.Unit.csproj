@@ -26,6 +26,7 @@
     <ProjectReference Include="..\..\src\MultiSigSchnorr.Crypto\MultiSigSchnorr.Crypto.csproj" />
     <ProjectReference Include="..\..\src\MultiSigSchnorr.Protocol\MultiSigSchnorr.Protocol.csproj" />
     <ProjectReference Include="..\..\src\MultiSigSchnorr.Application\MultiSigSchnorr.Application.csproj" />
+    <ProjectReference Include="..\..\src\MultiSigSchnorr.Infrastructure\MultiSigSchnorr.Infrastructure.csproj" />
   </ItemGroup>
 
 </Project>
