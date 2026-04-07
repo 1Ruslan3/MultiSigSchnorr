@@ -8,6 +8,7 @@ using MultiSigSchnorr.Crypto.Schnorr;
 using MultiSigSchnorr.Crypto.Security;
 using MultiSigSchnorr.Domain.Entities;
 using MultiSigSchnorr.Domain.Enums;
+using MultiSigSchnorr.Infrastructure.Repositories;
 using MultiSigSchnorr.Protocol.Epochs;
 using MultiSigSchnorr.Protocol.Models;
 using MultiSigSchnorr.Protocol.Sessions;
@@ -18,11 +19,12 @@ namespace MultiSigSchnorr.Tests.Unit.Application.RevealNonce;
 public sealed class RevealNonceHandlerTests
 {
     [Fact]
-    public void Handle_Should_Reveal_Nonce_For_Valid_Participant()
+    public async Task HandleAsync_Should_Reveal_Nonce_For_Valid_Participant()
     {
-        var context = BuildContext();
-
-        var handler = new RevealNonceHandler(context.ProtocolService);
+        var context = await BuildContextAsync(true);
+        var handler = new RevealNonceHandler(
+            context.ProtocolSessionRepository,
+            context.ProtocolService);
 
         var request = new RevealNonceRequest
         {
@@ -30,43 +32,50 @@ public sealed class RevealNonceHandlerTests
             ParticipantId = context.ParticipantIds[0]
         };
 
-        var reveal = handler.Handle(request, context.Session, DateTime.UtcNow);
+        var reveal = await handler.HandleAsync(request, DateTime.UtcNow);
+        var loaded = await context.ProtocolSessionRepository.GetByIdAsync(context.Session.SessionId);
 
         Assert.Equal(context.Session.SessionId, reveal.SessionId);
         Assert.Equal(context.ParticipantIds[0], reveal.ParticipantId);
-        Assert.NotNull(context.Session.GetParticipant(context.ParticipantIds[0]).RevealRecord);
+        Assert.NotNull(loaded);
+        Assert.NotNull(loaded!.GetParticipant(context.ParticipantIds[0]).RevealRecord);
     }
 
     [Fact]
-    public void Handle_Should_Move_Session_To_PartialSignatureCollection_After_All_Reveals()
+    public async Task HandleAsync_Should_Move_Session_To_PartialSignatureCollection_After_All_Reveals()
     {
-        var context = BuildContext();
-
-        var handler = new RevealNonceHandler(context.ProtocolService);
+        var context = await BuildContextAsync(true);
+        var handler = new RevealNonceHandler(
+            context.ProtocolSessionRepository,
+            context.ProtocolService);
 
         foreach (var participantId in context.ParticipantIds)
         {
-            var request = new RevealNonceRequest
-            {
-                SessionId = context.Session.SessionId,
-                ParticipantId = participantId
-            };
-
-            handler.Handle(request, context.Session, DateTime.UtcNow);
+            await handler.HandleAsync(
+                new RevealNonceRequest
+                {
+                    SessionId = context.Session.SessionId,
+                    ParticipantId = participantId
+                },
+                DateTime.UtcNow);
         }
 
-        Assert.True(context.Session.AllNoncesRevealed);
-        Assert.NotNull(context.Session.AggregateNoncePoint);
-        Assert.NotNull(context.Session.Challenge);
-        Assert.Equal(SessionStatus.PartialSignaturesCollection, context.Session.SigningSession.Status);
+        var loaded = await context.ProtocolSessionRepository.GetByIdAsync(context.Session.SessionId);
+
+        Assert.NotNull(loaded);
+        Assert.True(loaded!.AllNoncesRevealed);
+        Assert.NotNull(loaded.AggregateNoncePoint);
+        Assert.NotNull(loaded.Challenge);
+        Assert.Equal(SessionStatus.PartialSignaturesCollection, loaded.SigningSession.Status);
     }
 
     [Fact]
-    public void Handle_Should_Throw_When_Not_All_Commitments_Are_Published()
+    public async Task HandleAsync_Should_Throw_When_Not_All_Commitments_Are_Published()
     {
-        var context = BuildContext(publishAllCommitments: false);
-
-        var handler = new RevealNonceHandler(context.ProtocolService);
+        var context = await BuildContextAsync(false);
+        var handler = new RevealNonceHandler(
+            context.ProtocolSessionRepository,
+            context.ProtocolService);
 
         var request = new RevealNonceRequest
         {
@@ -74,32 +83,18 @@ public sealed class RevealNonceHandlerTests
             ParticipantId = context.ParticipantIds[0]
         };
 
-        Assert.Throws<InvalidOperationException>(() =>
-            handler.Handle(request, context.Session, DateTime.UtcNow));
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            handler.HandleAsync(request, DateTime.UtcNow));
     }
 
-    [Fact]
-    public void Handle_Should_Throw_When_Reveal_Is_Submitted_Twice()
+    private static async Task<TestContext> BuildContextAsync(bool publishAllCommitments)
     {
-        var context = BuildContext();
+        var protocolService = CreateProtocolService(
+            out var publicKeyGenerationService,
+            out var digestService,
+            out var curve);
 
-        var handler = new RevealNonceHandler(context.ProtocolService);
-
-        var request = new RevealNonceRequest
-        {
-            SessionId = context.Session.SessionId,
-            ParticipantId = context.ParticipantIds[0]
-        };
-
-        handler.Handle(request, context.Session, DateTime.UtcNow);
-
-        Assert.Throws<InvalidOperationException>(() =>
-            handler.Handle(request, context.Session, DateTime.UtcNow));
-    }
-
-    private static TestContext BuildContext(bool publishAllCommitments = true)
-    {
-        var protocolService = CreateProtocolService(out var publicKeyGenerationService, out var digestService, out var curve);
+        var protocolSessionRepository = new InMemoryProtocolSessionRepository();
 
         var p1Id = Guid.NewGuid();
         var p2Id = Guid.NewGuid();
@@ -150,7 +145,7 @@ public sealed class RevealNonceHandlerTests
             new(Guid.NewGuid(), epoch.Id, p3.Id, DateTime.UtcNow)
         };
 
-        var digest = digestService.DigestUtf8("reveal-nonce-handler");
+        var digest = digestService.DigestUtf8("reveal-nonce-repository");
 
         var session = protocolService.CreateSession(
             epoch,
@@ -160,14 +155,15 @@ public sealed class RevealNonceHandlerTests
             digest,
             DateTime.UtcNow);
 
-        var participantIds = new[] { p1Id, p2Id, p3Id };
-
-        var count = publishAllCommitments ? participantIds.Length : 2;
+        var ids = new[] { p1Id, p2Id, p3Id };
+        var count = publishAllCommitments ? ids.Length : 2;
 
         for (var i = 0; i < count; i++)
-            protocolService.PublishCommitment(session, participantIds[i], DateTime.UtcNow);
+            protocolService.PublishCommitment(session, ids[i], DateTime.UtcNow);
 
-        return new TestContext(protocolService, session, participantIds);
+        await protocolSessionRepository.AddAsync(session);
+
+        return new TestContext(protocolService, protocolSessionRepository, session, ids);
     }
 
     private static NPartyCommitmentProtocolService CreateProtocolService(
@@ -205,15 +201,18 @@ public sealed class RevealNonceHandlerTests
     private sealed class TestContext
     {
         public NPartyCommitmentProtocolService ProtocolService { get; }
+        public InMemoryProtocolSessionRepository ProtocolSessionRepository { get; }
         public NPartyProtocolSession Session { get; }
         public IReadOnlyList<Guid> ParticipantIds { get; }
 
         public TestContext(
             NPartyCommitmentProtocolService protocolService,
+            InMemoryProtocolSessionRepository protocolSessionRepository,
             NPartyProtocolSession session,
             IReadOnlyList<Guid> participantIds)
         {
             ProtocolService = protocolService;
+            ProtocolSessionRepository = protocolSessionRepository;
             Session = session;
             ParticipantIds = participantIds;
         }

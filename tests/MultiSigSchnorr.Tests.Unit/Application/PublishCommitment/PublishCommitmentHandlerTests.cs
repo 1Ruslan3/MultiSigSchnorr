@@ -8,7 +8,9 @@ using MultiSigSchnorr.Crypto.Schnorr;
 using MultiSigSchnorr.Crypto.Security;
 using MultiSigSchnorr.Domain.Entities;
 using MultiSigSchnorr.Domain.Enums;
+using MultiSigSchnorr.Infrastructure.Repositories;
 using MultiSigSchnorr.Protocol.Epochs;
+using MultiSigSchnorr.Protocol.Models;
 using MultiSigSchnorr.Protocol.Sessions;
 using Xunit;
 
@@ -17,11 +19,12 @@ namespace MultiSigSchnorr.Tests.Unit.Application.PublishCommitment;
 public sealed class PublishCommitmentHandlerTests
 {
     [Fact]
-    public void Handle_Should_Publish_Commitment_For_Valid_Participant()
+    public async Task HandleAsync_Should_Publish_Commitment_For_Valid_Participant()
     {
-        var context = BuildContext();
-
-        var handler = new PublishCommitmentHandler(context.ProtocolService);
+        var context = await BuildContextAsync();
+        var handler = new PublishCommitmentHandler(
+            context.ProtocolSessionRepository,
+            context.ProtocolService);
 
         var request = new PublishCommitmentRequest
         {
@@ -29,45 +32,49 @@ public sealed class PublishCommitmentHandlerTests
             ParticipantId = context.ParticipantIds[0]
         };
 
-        var commitment = handler.Handle(
-            request,
-            context.Session,
-            DateTime.UtcNow);
+        var commitment = await handler.HandleAsync(request, DateTime.UtcNow);
+        var loaded = await context.ProtocolSessionRepository.GetByIdAsync(context.Session.SessionId);
 
         Assert.Equal(context.Session.SessionId, commitment.SessionId);
         Assert.Equal(context.ParticipantIds[0], commitment.ParticipantId);
-        Assert.NotNull(context.Session.GetParticipant(context.ParticipantIds[0]).CommitmentRecord);
-        Assert.Equal(SessionStatus.CommitmentsCollection, context.Session.SigningSession.Status);
+        Assert.NotNull(loaded);
+        Assert.NotNull(loaded!.GetParticipant(context.ParticipantIds[0]).CommitmentRecord);
+        Assert.Equal(SessionStatus.CommitmentsCollection, loaded.SigningSession.Status);
     }
 
     [Fact]
-    public void Handle_Should_Move_Session_To_NonceRevealCollection_After_All_Commitments()
+    public async Task HandleAsync_Should_Move_Session_To_NonceRevealCollection_After_All_Commitments()
     {
-        var context = BuildContext();
-
-        var handler = new PublishCommitmentHandler(context.ProtocolService);
+        var context = await BuildContextAsync();
+        var handler = new PublishCommitmentHandler(
+            context.ProtocolSessionRepository,
+            context.ProtocolService);
 
         foreach (var participantId in context.ParticipantIds)
         {
-            var request = new PublishCommitmentRequest
-            {
-                SessionId = context.Session.SessionId,
-                ParticipantId = participantId
-            };
-
-            handler.Handle(request, context.Session, DateTime.UtcNow);
+            await handler.HandleAsync(
+                new PublishCommitmentRequest
+                {
+                    SessionId = context.Session.SessionId,
+                    ParticipantId = participantId
+                },
+                DateTime.UtcNow);
         }
 
-        Assert.True(context.Session.AllCommitmentsPublished);
-        Assert.Equal(SessionStatus.NonceRevealCollection, context.Session.SigningSession.Status);
+        var loaded = await context.ProtocolSessionRepository.GetByIdAsync(context.Session.SessionId);
+
+        Assert.NotNull(loaded);
+        Assert.True(loaded!.AllCommitmentsPublished);
+        Assert.Equal(SessionStatus.NonceRevealCollection, loaded.SigningSession.Status);
     }
 
     [Fact]
-    public void Handle_Should_Throw_When_Commitment_Is_Published_Twice()
+    public async Task HandleAsync_Should_Throw_When_Commitment_Is_Published_Twice()
     {
-        var context = BuildContext();
-
-        var handler = new PublishCommitmentHandler(context.ProtocolService);
+        var context = await BuildContextAsync();
+        var handler = new PublishCommitmentHandler(
+            context.ProtocolSessionRepository,
+            context.ProtocolService);
 
         var request = new PublishCommitmentRequest
         {
@@ -75,55 +82,20 @@ public sealed class PublishCommitmentHandlerTests
             ParticipantId = context.ParticipantIds[0]
         };
 
-        handler.Handle(request, context.Session, DateTime.UtcNow);
+        await handler.HandleAsync(request, DateTime.UtcNow);
 
-        Assert.Throws<InvalidOperationException>(() =>
-            handler.Handle(request, context.Session, DateTime.UtcNow));
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            handler.HandleAsync(request, DateTime.UtcNow));
     }
 
-    [Fact]
-    public void Handle_Should_Throw_When_Request_SessionId_Does_Not_Match_ProtocolSession()
+    private static async Task<TestContext> BuildContextAsync()
     {
-        var context = BuildContext();
+        var protocolService = CreateProtocolService(
+            out var publicKeyGenerationService,
+            out var digestService,
+            out var curve);
 
-        var handler = new PublishCommitmentHandler(context.ProtocolService);
-
-        var request = new PublishCommitmentRequest
-        {
-            SessionId = Guid.NewGuid(),
-            ParticipantId = context.ParticipantIds[0]
-        };
-
-        Assert.Throws<InvalidOperationException>(() =>
-            handler.Handle(request, context.Session, DateTime.UtcNow));
-    }
-
-    private static TestContext BuildContext()
-    {
-        var curve = new P256CurveContext();
-        var randomSource = new SystemRandomSource();
-        var nonceGenerator = new SecureNonceGenerator(curve, randomSource);
-
-        var sha256 = new Sha256HashService();
-        var hashToScalar = new HashToScalarService(curve, sha256);
-        var challengeService = new ChallengeService(hashToScalar);
-        var commitmentService = new CommitmentService(sha256);
-        var partialSignatureService = new PartialSignatureService(curve);
-        var aggregateVerifier = new AggregateSignatureVerifier(curve, challengeService);
-        var publicKeyGenerationService = new PublicKeyGenerationService(curve);
-        var aggregateKeyService = new AggregateKeyService(curve, hashToScalar);
-        var epochGuard = new EpochParticipationGuard();
-
-        var protocolService = new NPartyCommitmentProtocolService(
-            publicKeyGenerationService,
-            aggregateKeyService,
-            nonceGenerator,
-            commitmentService,
-            challengeService,
-            partialSignatureService,
-            aggregateVerifier,
-            curve,
-            epochGuard);
+        var protocolSessionRepository = new InMemoryProtocolSessionRepository();
 
         var p1Id = Guid.NewGuid();
         var p2Id = Guid.NewGuid();
@@ -160,26 +132,9 @@ public sealed class PublishCommitmentHandlerTests
             [p3Id] = k3
         };
 
-        var p1 = new Participant(
-            p1Id,
-            "Participant-1",
-            publicKeyGenerationService.DerivePublicKey(k1),
-            ParticipantStatus.Active,
-            DateTime.UtcNow);
-
-        var p2 = new Participant(
-            p2Id,
-            "Participant-2",
-            publicKeyGenerationService.DerivePublicKey(k2),
-            ParticipantStatus.Active,
-            DateTime.UtcNow);
-
-        var p3 = new Participant(
-            p3Id,
-            "Participant-3",
-            publicKeyGenerationService.DerivePublicKey(k3),
-            ParticipantStatus.Active,
-            DateTime.UtcNow);
+        var p1 = new Participant(p1Id, "Participant-1", publicKeyGenerationService.DerivePublicKey(k1), ParticipantStatus.Active, DateTime.UtcNow);
+        var p2 = new Participant(p2Id, "Participant-2", publicKeyGenerationService.DerivePublicKey(k2), ParticipantStatus.Active, DateTime.UtcNow);
+        var p3 = new Participant(p3Id, "Participant-3", publicKeyGenerationService.DerivePublicKey(k3), ParticipantStatus.Active, DateTime.UtcNow);
 
         var epoch = new Epoch(Guid.NewGuid(), 1, DateTime.UtcNow);
         epoch.Activate(DateTime.UtcNow);
@@ -191,8 +146,7 @@ public sealed class PublishCommitmentHandlerTests
             new(Guid.NewGuid(), epoch.Id, p3.Id, DateTime.UtcNow)
         };
 
-        var digestService = new MessageDigestService();
-        var digest = digestService.DigestUtf8("publish-commitment-handler");
+        var digest = digestService.DigestUtf8("publish-commitment-repository");
 
         var session = protocolService.CreateSession(
             epoch,
@@ -202,24 +156,58 @@ public sealed class PublishCommitmentHandlerTests
             digest,
             DateTime.UtcNow);
 
-        return new TestContext(
-            protocolService,
-            session,
-            new[] { p1Id, p2Id, p3Id });
+        await protocolSessionRepository.AddAsync(session);
+
+        return new TestContext(protocolService, protocolSessionRepository, session, new[] { p1Id, p2Id, p3Id });
+    }
+
+    private static NPartyCommitmentProtocolService CreateProtocolService(
+        out PublicKeyGenerationService publicKeyGenerationService,
+        out MessageDigestService digestService,
+        out P256CurveContext curve)
+    {
+        curve = new P256CurveContext();
+        var randomSource = new SystemRandomSource();
+        var nonceGenerator = new SecureNonceGenerator(curve, randomSource);
+
+        var sha256 = new Sha256HashService();
+        var hashToScalar = new HashToScalarService(curve, sha256);
+        var challengeService = new ChallengeService(hashToScalar);
+        var commitmentService = new CommitmentService(sha256);
+        var partialSignatureService = new PartialSignatureService(curve);
+        var aggregateVerifier = new AggregateSignatureVerifier(curve, challengeService);
+        publicKeyGenerationService = new PublicKeyGenerationService(curve);
+        var aggregateKeyService = new AggregateKeyService(curve, hashToScalar);
+        var epochGuard = new EpochParticipationGuard();
+        digestService = new MessageDigestService();
+
+        return new NPartyCommitmentProtocolService(
+            publicKeyGenerationService,
+            aggregateKeyService,
+            nonceGenerator,
+            commitmentService,
+            challengeService,
+            partialSignatureService,
+            aggregateVerifier,
+            curve,
+            epochGuard);
     }
 
     private sealed class TestContext
     {
         public NPartyCommitmentProtocolService ProtocolService { get; }
-        public MultiSigSchnorr.Protocol.Models.NPartyProtocolSession Session { get; }
+        public InMemoryProtocolSessionRepository ProtocolSessionRepository { get; }
+        public NPartyProtocolSession Session { get; }
         public IReadOnlyList<Guid> ParticipantIds { get; }
 
         public TestContext(
             NPartyCommitmentProtocolService protocolService,
-            MultiSigSchnorr.Protocol.Models.NPartyProtocolSession session,
+            InMemoryProtocolSessionRepository protocolSessionRepository,
+            NPartyProtocolSession session,
             IReadOnlyList<Guid> participantIds)
         {
             ProtocolService = protocolService;
+            ProtocolSessionRepository = protocolSessionRepository;
             Session = session;
             ParticipantIds = participantIds;
         }

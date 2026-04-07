@@ -1,25 +1,29 @@
+using MultiSigSchnorr.Application.Repositories;
 using MultiSigSchnorr.Domain.Entities;
-using MultiSigSchnorr.Protocol.Models;
-using MultiSigSchnorr.Protocol.Sessions;
 
 namespace MultiSigSchnorr.Application.UseCases.RevealNonce;
 
 public sealed class RevealNonceHandler
 {
-    private readonly NPartyCommitmentProtocolService _protocolService;
+    private readonly IProtocolSessionRepository _protocolSessionRepository;
+    private readonly MultiSigSchnorr.Protocol.Sessions.NPartyCommitmentProtocolService _protocolService;
 
-    public RevealNonceHandler(NPartyCommitmentProtocolService protocolService)
+    public RevealNonceHandler(
+        IProtocolSessionRepository protocolSessionRepository,
+        MultiSigSchnorr.Protocol.Sessions.NPartyCommitmentProtocolService protocolService)
     {
-        _protocolService = protocolService ?? throw new ArgumentNullException(nameof(protocolService));
+        _protocolSessionRepository = protocolSessionRepository
+            ?? throw new ArgumentNullException(nameof(protocolSessionRepository));
+        _protocolService = protocolService
+            ?? throw new ArgumentNullException(nameof(protocolService));
     }
 
-    public NonceReveal Handle(
+    public async Task<NonceReveal> HandleAsync(
         RevealNonceRequest request,
-        NPartyProtocolSession session,
-        DateTime nowUtc)
+        DateTime nowUtc,
+        CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(request);
-        ArgumentNullException.ThrowIfNull(session);
 
         if (request.SessionId == Guid.Empty)
             throw new ArgumentException("Session id cannot be empty.", nameof(request));
@@ -27,12 +31,21 @@ public sealed class RevealNonceHandler
         if (request.ParticipantId == Guid.Empty)
             throw new ArgumentException("Participant id cannot be empty.", nameof(request));
 
-        if (request.SessionId != session.SessionId)
-            throw new InvalidOperationException("Request session id does not match the provided protocol session.");
+        var session = await _protocolSessionRepository.GetByIdAsync(
+            request.SessionId,
+            cancellationToken);
 
-        return _protocolService.RevealNonce(
+        if (session is null)
+            throw new InvalidOperationException(
+                $"Protocol session '{request.SessionId}' was not found.");
+
+        var reveal = _protocolService.RevealNonce(
             session,
             request.ParticipantId,
             nowUtc);
+
+        await _protocolSessionRepository.UpdateAsync(session, cancellationToken);
+
+        return reveal;
     }
 }

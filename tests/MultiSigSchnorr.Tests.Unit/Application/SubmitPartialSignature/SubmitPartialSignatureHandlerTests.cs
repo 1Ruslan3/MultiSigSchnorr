@@ -8,6 +8,7 @@ using MultiSigSchnorr.Crypto.Schnorr;
 using MultiSigSchnorr.Crypto.Security;
 using MultiSigSchnorr.Domain.Entities;
 using MultiSigSchnorr.Domain.Enums;
+using MultiSigSchnorr.Infrastructure.Repositories;
 using MultiSigSchnorr.Protocol.Epochs;
 using MultiSigSchnorr.Protocol.Models;
 using MultiSigSchnorr.Protocol.Sessions;
@@ -18,11 +19,12 @@ namespace MultiSigSchnorr.Tests.Unit.Application.SubmitPartialSignature;
 public sealed class SubmitPartialSignatureHandlerTests
 {
     [Fact]
-    public void Handle_Should_Submit_PartialSignature_For_Valid_Participant()
+    public async Task HandleAsync_Should_Submit_PartialSignature_For_Valid_Participant()
     {
-        var context = BuildContext();
-
-        var handler = new SubmitPartialSignatureHandler(context.ProtocolService);
+        var context = await BuildContextAsync(true);
+        var handler = new SubmitPartialSignatureHandler(
+            context.ProtocolSessionRepository,
+            context.ProtocolService);
 
         var request = new SubmitPartialSignatureRequest
         {
@@ -30,42 +32,49 @@ public sealed class SubmitPartialSignatureHandlerTests
             ParticipantId = context.ParticipantIds[0]
         };
 
-        var partial = handler.Handle(request, context.Session, DateTime.UtcNow);
+        var partial = await handler.HandleAsync(request, DateTime.UtcNow);
+        var loaded = await context.ProtocolSessionRepository.GetByIdAsync(context.Session.SessionId);
 
         Assert.Equal(context.Session.SessionId, partial.SessionId);
         Assert.Equal(context.ParticipantIds[0], partial.ParticipantId);
-        Assert.NotNull(context.Session.GetParticipant(context.ParticipantIds[0]).PartialSignatureRecord);
+        Assert.NotNull(loaded);
+        Assert.NotNull(loaded!.GetParticipant(context.ParticipantIds[0]).PartialSignatureRecord);
     }
 
     [Fact]
-    public void Handle_Should_Finalize_Session_After_All_Partial_Signatures()
+    public async Task HandleAsync_Should_Finalize_Session_After_All_Partial_Signatures()
     {
-        var context = BuildContext();
-
-        var handler = new SubmitPartialSignatureHandler(context.ProtocolService);
+        var context = await BuildContextAsync(true);
+        var handler = new SubmitPartialSignatureHandler(
+            context.ProtocolSessionRepository,
+            context.ProtocolService);
 
         foreach (var participantId in context.ParticipantIds)
         {
-            var request = new SubmitPartialSignatureRequest
-            {
-                SessionId = context.Session.SessionId,
-                ParticipantId = participantId
-            };
-
-            handler.Handle(request, context.Session, DateTime.UtcNow);
+            await handler.HandleAsync(
+                new SubmitPartialSignatureRequest
+                {
+                    SessionId = context.Session.SessionId,
+                    ParticipantId = participantId
+                },
+                DateTime.UtcNow);
         }
 
-        Assert.True(context.Session.AllPartialSignaturesSubmitted);
-        Assert.NotNull(context.Session.AggregateSignature);
-        Assert.Equal(SessionStatus.Completed, context.Session.SigningSession.Status);
+        var loaded = await context.ProtocolSessionRepository.GetByIdAsync(context.Session.SessionId);
+
+        Assert.NotNull(loaded);
+        Assert.True(loaded!.AllPartialSignaturesSubmitted);
+        Assert.NotNull(loaded.AggregateSignature);
+        Assert.Equal(SessionStatus.Completed, loaded.SigningSession.Status);
     }
 
     [Fact]
-    public void Handle_Should_Throw_When_Not_All_Nonces_Are_Revealed()
+    public async Task HandleAsync_Should_Throw_When_Not_All_Nonces_Are_Revealed()
     {
-        var context = BuildContext(revealAllNonces: false);
-
-        var handler = new SubmitPartialSignatureHandler(context.ProtocolService);
+        var context = await BuildContextAsync(false);
+        var handler = new SubmitPartialSignatureHandler(
+            context.ProtocolSessionRepository,
+            context.ProtocolService);
 
         var request = new SubmitPartialSignatureRequest
         {
@@ -73,32 +82,18 @@ public sealed class SubmitPartialSignatureHandlerTests
             ParticipantId = context.ParticipantIds[0]
         };
 
-        Assert.Throws<InvalidOperationException>(() =>
-            handler.Handle(request, context.Session, DateTime.UtcNow));
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            handler.HandleAsync(request, DateTime.UtcNow));
     }
 
-    [Fact]
-    public void Handle_Should_Throw_When_Submitted_Twice()
+    private static async Task<TestContext> BuildContextAsync(bool revealAllNonces)
     {
-        var context = BuildContext();
+        var protocolService = CreateProtocolService(
+            out var publicKeyGenerationService,
+            out var digestService,
+            out var curve);
 
-        var handler = new SubmitPartialSignatureHandler(context.ProtocolService);
-
-        var request = new SubmitPartialSignatureRequest
-        {
-            SessionId = context.Session.SessionId,
-            ParticipantId = context.ParticipantIds[0]
-        };
-
-        handler.Handle(request, context.Session, DateTime.UtcNow);
-
-        Assert.Throws<InvalidOperationException>(() =>
-            handler.Handle(request, context.Session, DateTime.UtcNow));
-    }
-
-    private static TestContext BuildContext(bool revealAllNonces = true)
-    {
-        var protocolService = CreateProtocolService(out var publicKeyGenerationService, out var digestService, out var curve);
+        var protocolSessionRepository = new InMemoryProtocolSessionRepository();
 
         var p1Id = Guid.NewGuid();
         var p2Id = Guid.NewGuid();
@@ -149,7 +144,7 @@ public sealed class SubmitPartialSignatureHandlerTests
             new(Guid.NewGuid(), epoch.Id, p3.Id, DateTime.UtcNow)
         };
 
-        var digest = digestService.DigestUtf8("submit-partial-signature-handler");
+        var digest = digestService.DigestUtf8("submit-partial-signature-repository");
 
         var session = protocolService.CreateSession(
             epoch,
@@ -159,17 +154,19 @@ public sealed class SubmitPartialSignatureHandlerTests
             digest,
             DateTime.UtcNow);
 
-        var participantIds = new[] { p1Id, p2Id, p3Id };
+        var ids = new[] { p1Id, p2Id, p3Id };
 
-        foreach (var participantId in participantIds)
-            protocolService.PublishCommitment(session, participantId, DateTime.UtcNow);
+        foreach (var id in ids)
+            protocolService.PublishCommitment(session, id, DateTime.UtcNow);
 
-        var revealCount = revealAllNonces ? participantIds.Length : 2;
+        var revealCount = revealAllNonces ? ids.Length : 2;
 
         for (var i = 0; i < revealCount; i++)
-            protocolService.RevealNonce(session, participantIds[i], DateTime.UtcNow);
+            protocolService.RevealNonce(session, ids[i], DateTime.UtcNow);
 
-        return new TestContext(protocolService, session, participantIds);
+        await protocolSessionRepository.AddAsync(session);
+
+        return new TestContext(protocolService, protocolSessionRepository, session, ids);
     }
 
     private static NPartyCommitmentProtocolService CreateProtocolService(
@@ -207,15 +204,18 @@ public sealed class SubmitPartialSignatureHandlerTests
     private sealed class TestContext
     {
         public NPartyCommitmentProtocolService ProtocolService { get; }
+        public InMemoryProtocolSessionRepository ProtocolSessionRepository { get; }
         public NPartyProtocolSession Session { get; }
         public IReadOnlyList<Guid> ParticipantIds { get; }
 
         public TestContext(
             NPartyCommitmentProtocolService protocolService,
+            InMemoryProtocolSessionRepository protocolSessionRepository,
             NPartyProtocolSession session,
             IReadOnlyList<Guid> participantIds)
         {
             ProtocolService = protocolService;
+            ProtocolSessionRepository = protocolSessionRepository;
             Session = session;
             ParticipantIds = participantIds;
         }
