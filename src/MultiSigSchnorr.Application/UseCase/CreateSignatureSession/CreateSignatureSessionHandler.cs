@@ -1,3 +1,4 @@
+using MultiSigSchnorr.Application.Repositories;
 using MultiSigSchnorr.Domain.Entities;
 using MultiSigSchnorr.Domain.Enums;
 
@@ -5,36 +6,74 @@ namespace MultiSigSchnorr.Application.UseCases.CreateSignatureSession;
 
 public sealed class CreateSignatureSessionHandler
 {
-    public SignatureSession Handle(
+    private readonly IEpochRepository _epochRepository;
+    private readonly IParticipantRepository _participantRepository;
+    private readonly IEpochMemberRepository _epochMemberRepository;
+    private readonly ISignatureSessionRepository _signatureSessionRepository;
+
+    public CreateSignatureSessionHandler(
+        IEpochRepository epochRepository,
+        IParticipantRepository participantRepository,
+        IEpochMemberRepository epochMemberRepository,
+        ISignatureSessionRepository signatureSessionRepository)
+    {
+        _epochRepository = epochRepository ?? throw new ArgumentNullException(nameof(epochRepository));
+        _participantRepository = participantRepository ?? throw new ArgumentNullException(nameof(participantRepository));
+        _epochMemberRepository = epochMemberRepository ?? throw new ArgumentNullException(nameof(epochMemberRepository));
+        _signatureSessionRepository = signatureSessionRepository ?? throw new ArgumentNullException(nameof(signatureSessionRepository));
+    }
+
+    public async Task<SignatureSession> HandleAsync(
         CreateSignatureSessionRequest request,
-        Epoch epoch,
-        IReadOnlyList<Participant> participants,
-        IReadOnlyList<EpochMember> members,
-        DateTime nowUtc)
+        DateTime nowUtc,
+        CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(request);
-        ArgumentNullException.ThrowIfNull(epoch);
+
+        if (request.EpochId == Guid.Empty)
+            throw new ArgumentException("Request epoch id cannot be empty.", nameof(request));
+
+        if (request.ParticipantIds is null || request.ParticipantIds.Count < 2)
+            throw new InvalidOperationException("At least two participants are required to create a signing session.");
+
+        if (request.Message is null || request.Message.Length == 0)
+            throw new InvalidOperationException("Message cannot be empty.");
+
+        var epoch = await _epochRepository.GetByIdAsync(request.EpochId, cancellationToken);
+        if (epoch is null)
+            throw new InvalidOperationException($"Epoch '{request.EpochId}' was not found.");
 
         if (epoch.Status != EpochStatus.Active)
             throw new InvalidOperationException("Epoch must be active.");
 
-        var memberSet = members
-            .Where(x => x.EpochId == epoch.Id && x.IsActive)
+        var participants = await _participantRepository.GetByIdsAsync(
+            request.ParticipantIds,
+            cancellationToken);
+
+        var participantMap = participants
+            .GroupBy(x => x.Id)
+            .ToDictionary(g => g.Key, g => g.First());
+
+        var epochMembers = await _epochMemberRepository.GetByEpochIdAsync(epoch.Id, cancellationToken);
+
+        var activeMemberIds = epochMembers
+            .Where(x => x.IsActive)
             .Select(x => x.ParticipantId)
             .ToHashSet();
 
-        var participantMap = participants.ToDictionary(x => x.Id);
-
-        foreach (var id in request.ParticipantIds)
+        foreach (var participantId in request.ParticipantIds.Distinct())
         {
-            if (!memberSet.Contains(id))
-                throw new InvalidOperationException($"Participant {id} is not in active epoch.");
+            if (!activeMemberIds.Contains(participantId))
+                throw new InvalidOperationException(
+                    $"Participant '{participantId}' is not an active member of epoch '{epoch.Id}'.");
 
-            if (!participantMap.TryGetValue(id, out var p))
-                throw new InvalidOperationException($"Participant {id} not found.");
+            if (!participantMap.TryGetValue(participantId, out var participant))
+                throw new InvalidOperationException(
+                    $"Participant '{participantId}' was not found in the participant repository.");
 
-            if (p.Status != ParticipantStatus.Active)
-                throw new InvalidOperationException($"Participant {id} is not active.");
+            if (participant.Status != ParticipantStatus.Active)
+                throw new InvalidOperationException(
+                    $"Participant '{participantId}' is not active.");
         }
 
         var session = new SignatureSession(
@@ -43,6 +82,8 @@ public sealed class CreateSignatureSessionHandler
             request.ParticipantIds,
             request.Message,
             nowUtc);
+
+        await _signatureSessionRepository.AddAsync(session, cancellationToken);
 
         return session;
     }

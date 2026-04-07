@@ -14,7 +14,6 @@ public sealed class P256CurveContext : ICurveContext
     private readonly X9ECParameters _parameters;
     private readonly ECCurve _curve;
     private readonly ECPoint _generator;
-
     public string CurveName => CurveNames.P256;
     public int ScalarSizeBytes => 32;
     public BigInteger Order { get; }
