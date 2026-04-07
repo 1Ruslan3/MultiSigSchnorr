@@ -8,6 +8,7 @@ using MultiSigSchnorr.Crypto.Schnorr;
 using MultiSigSchnorr.Crypto.Security;
 using MultiSigSchnorr.Domain.Entities;
 using MultiSigSchnorr.Domain.Enums;
+using MultiSigSchnorr.Infrastructure.Repositories;
 using MultiSigSchnorr.Protocol.Epochs;
 using MultiSigSchnorr.Protocol.Models;
 using MultiSigSchnorr.Protocol.Sessions;
@@ -18,41 +19,40 @@ namespace MultiSigSchnorr.Tests.Unit.Application.GetSessionState;
 public sealed class GetSessionStateHandlerTests
 {
     [Fact]
-    public void Handle_Should_Return_Initial_Commitment_State()
+    public async Task HandleAsync_Should_Return_Commitment_State_From_Repository()
     {
-        var context = BuildContext(phase: TestPhase.CommitmentsOnly);
-        var handler = new GetSessionStateHandler();
+        var context = await BuildContextAsync(TestPhase.CommitmentsOnly);
+        var handler = new GetSessionStateHandler(context.ProtocolSessionRepository);
 
         var request = new GetSessionStateRequest
         {
             SessionId = context.Session.SessionId
         };
 
-        var result = handler.Handle(request, context.Session);
+        var result = await handler.HandleAsync(request);
 
         Assert.Equal(context.Session.SessionId, result.SessionId);
         Assert.Equal(SessionStatus.NonceRevealCollection, result.SessionStatus);
         Assert.True(result.AllCommitmentsPublished);
         Assert.False(result.AllNoncesRevealed);
         Assert.False(result.AllPartialSignaturesSubmitted);
-        Assert.NotNull(result.Participants);
         Assert.Equal(3, result.Participants.Count);
         Assert.All(result.Participants, x => Assert.True(x.HasCommitment));
         Assert.All(result.Participants, x => Assert.False(x.HasReveal));
     }
 
     [Fact]
-    public void Handle_Should_Return_Final_State_After_Protocol_Completion()
+    public async Task HandleAsync_Should_Return_Final_State_From_Repository()
     {
-        var context = BuildContext(phase: TestPhase.Completed);
-        var handler = new GetSessionStateHandler();
+        var context = await BuildContextAsync(TestPhase.Completed);
+        var handler = new GetSessionStateHandler(context.ProtocolSessionRepository);
 
         var request = new GetSessionStateRequest
         {
             SessionId = context.Session.SessionId
         };
 
-        var result = handler.Handle(request, context.Session);
+        var result = await handler.HandleAsync(request);
 
         Assert.Equal(SessionStatus.Completed, result.SessionStatus);
         Assert.True(result.AllCommitmentsPublished);
@@ -66,23 +66,28 @@ public sealed class GetSessionStateHandlerTests
     }
 
     [Fact]
-    public void Handle_Should_Throw_When_Request_SessionId_Does_Not_Match()
+    public async Task HandleAsync_Should_Throw_When_Session_Is_Not_Found()
     {
-        var context = BuildContext(phase: TestPhase.CommitmentsOnly);
-        var handler = new GetSessionStateHandler();
+        var repository = new InMemoryProtocolSessionRepository();
+        var handler = new GetSessionStateHandler(repository);
 
         var request = new GetSessionStateRequest
         {
             SessionId = Guid.NewGuid()
         };
 
-        Assert.Throws<InvalidOperationException>(() =>
-            handler.Handle(request, context.Session));
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            handler.HandleAsync(request));
     }
 
-    private static TestContext BuildContext(TestPhase phase)
+    private static async Task<TestContext> BuildContextAsync(TestPhase phase)
     {
-        var protocolService = CreateProtocolService(out var publicKeyGenerationService, out var digestService, out var curve);
+        var protocolService = CreateProtocolService(
+            out var publicKeyGenerationService,
+            out var digestService,
+            out var curve);
+
+        var protocolSessionRepository = new InMemoryProtocolSessionRepository();
 
         var p1Id = Guid.NewGuid();
         var p2Id = Guid.NewGuid();
@@ -119,9 +124,26 @@ public sealed class GetSessionStateHandlerTests
             [p3Id] = k3
         };
 
-        var p1 = new Participant(p1Id, "Participant-1", publicKeyGenerationService.DerivePublicKey(k1), ParticipantStatus.Active, DateTime.UtcNow);
-        var p2 = new Participant(p2Id, "Participant-2", publicKeyGenerationService.DerivePublicKey(k2), ParticipantStatus.Active, DateTime.UtcNow);
-        var p3 = new Participant(p3Id, "Participant-3", publicKeyGenerationService.DerivePublicKey(k3), ParticipantStatus.Active, DateTime.UtcNow);
+        var p1 = new Participant(
+            p1Id,
+            "Participant-1",
+            publicKeyGenerationService.DerivePublicKey(k1),
+            ParticipantStatus.Active,
+            DateTime.UtcNow);
+
+        var p2 = new Participant(
+            p2Id,
+            "Participant-2",
+            publicKeyGenerationService.DerivePublicKey(k2),
+            ParticipantStatus.Active,
+            DateTime.UtcNow);
+
+        var p3 = new Participant(
+            p3Id,
+            "Participant-3",
+            publicKeyGenerationService.DerivePublicKey(k3),
+            ParticipantStatus.Active,
+            DateTime.UtcNow);
 
         var epoch = new Epoch(Guid.NewGuid(), 1, DateTime.UtcNow);
         epoch.Activate(DateTime.UtcNow);
@@ -133,7 +155,7 @@ public sealed class GetSessionStateHandlerTests
             new(Guid.NewGuid(), epoch.Id, p3.Id, DateTime.UtcNow)
         };
 
-        var digest = digestService.DigestUtf8("get-session-state");
+        var digest = digestService.DigestUtf8("get-session-state-repository");
 
         var session = protocolService.CreateSession(
             epoch,
@@ -160,7 +182,9 @@ public sealed class GetSessionStateHandlerTests
                 protocolService.SubmitPartialSignature(session, id, DateTime.UtcNow);
         }
 
-        return new TestContext(session);
+        await protocolSessionRepository.AddAsync(session);
+
+        return new TestContext(protocolSessionRepository, session);
     }
 
     private static NPartyCommitmentProtocolService CreateProtocolService(
@@ -197,10 +221,14 @@ public sealed class GetSessionStateHandlerTests
 
     private sealed class TestContext
     {
+        public InMemoryProtocolSessionRepository ProtocolSessionRepository { get; }
         public NPartyProtocolSession Session { get; }
 
-        public TestContext(NPartyProtocolSession session)
+        public TestContext(
+            InMemoryProtocolSessionRepository protocolSessionRepository,
+            NPartyProtocolSession session)
         {
+            ProtocolSessionRepository = protocolSessionRepository;
             Session = session;
         }
     }

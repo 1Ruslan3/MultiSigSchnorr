@@ -1,21 +1,33 @@
-using MultiSigSchnorr.Protocol.Models;
+using MultiSigSchnorr.Application.Repositories;
 
 namespace MultiSigSchnorr.Application.UseCases.GetSessionState;
 
 public sealed class GetSessionStateHandler
 {
-    public SessionStateDto Handle(
+    private readonly IProtocolSessionRepository _protocolSessionRepository;
+
+    public GetSessionStateHandler(IProtocolSessionRepository protocolSessionRepository)
+    {
+        _protocolSessionRepository = protocolSessionRepository
+            ?? throw new ArgumentNullException(nameof(protocolSessionRepository));
+    }
+
+    public async Task<SessionStateDto> HandleAsync(
         GetSessionStateRequest request,
-        NPartyProtocolSession session)
+        CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(request);
-        ArgumentNullException.ThrowIfNull(session);
 
         if (request.SessionId == Guid.Empty)
             throw new ArgumentException("Session id cannot be empty.", nameof(request));
 
-        if (request.SessionId != session.SessionId)
-            throw new InvalidOperationException("Request session id does not match the provided protocol session.");
+        var session = await _protocolSessionRepository.GetByIdAsync(
+            request.SessionId,
+            cancellationToken);
+
+        if (session is null)
+            throw new InvalidOperationException(
+                $"Protocol session '{request.SessionId}' was not found.");
 
         var participantDtos = session.Participants.Values
             .OrderBy(x => x.DisplayName, StringComparer.Ordinal)
