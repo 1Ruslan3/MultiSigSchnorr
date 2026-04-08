@@ -1,3 +1,4 @@
+using MultiSigSchnorr.Api.Development;
 using MultiSigSchnorr.Application.Repositories;
 using MultiSigSchnorr.Application.UseCases.CreateProtocolSession;
 using MultiSigSchnorr.Application.UseCases.GetSessionState;
@@ -81,6 +82,8 @@ builder.Services.AddSingleton<ISignatureSessionRepository, InMemorySignatureSess
 builder.Services.AddSingleton<IProtocolSessionRepository, InMemoryProtocolSessionRepository>();
 builder.Services.AddSingleton<IPrivateKeyMaterialRepository, InMemoryPrivateKeyMaterialRepository>();
 
+builder.Services.AddSingleton<DevelopmentDataSeeder>();
+
 builder.Services.AddScoped<CreateProtocolSessionHandler>();
 builder.Services.AddScoped<PublishCommitmentHandler>();
 builder.Services.AddScoped<RevealNonceHandler>();
@@ -94,15 +97,22 @@ if (app.Environment.IsDevelopment())
     app.MapOpenApi();
 }
 
-app.MapGet("/", () => Results.Ok(new
-{
-    service = "MultiSigSchnorr.Api",
-    status = "running",
-    openApi = "/openapi/v1.json",
-    protocolSessions = "/api/protocol-sessions"
-}));
+var seeder = app.Services.GetRequiredService<DevelopmentDataSeeder>();
+await seeder.SeedAsync();
 
-// Временно убираем, пока https не настроен
+app.MapGet("/", (DevelopmentDataSeeder dataSeeder) =>
+{
+    return Results.Ok(new
+    {
+        service = "MultiSigSchnorr.Api",
+        status = "running",
+        openApi = "/openapi/v1.json",
+        protocolSessions = "/api/protocol-sessions",
+        seeded = dataSeeder.Snapshot
+    });
+});
+
+// Пока без https, чтобы не ловить бессмысленные предупреждения локально
 // app.UseHttpsRedirection();
 
 app.MapControllers();
