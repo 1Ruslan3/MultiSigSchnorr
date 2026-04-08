@@ -3,7 +3,7 @@
   <ItemGroup>
     <ProjectReference Include="..\MultiSigSchnorr.Domain\MultiSigSchnorr.Domain.csproj" />
     <ProjectReference Include="..\MultiSigSchnorr.Application\MultiSigSchnorr.Application.csproj" />
-    <ProjectReference Include="..\MultiSigSchnorr.Contracts\MultiSigSchnorr.Contracts.csproj" />
+    <ProjectReference Include="..\MultiSigSchnorr.Protocol\MultiSigSchnorr.Protocol.csproj" />
   </ItemGroup>
 
   <PropertyGroup>

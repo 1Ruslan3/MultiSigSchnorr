@@ -6,4 +6,9 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\MultiSigSchnorr.Domain\MultiSigSchnorr.Domain.csproj" />
+  </ItemGroup>
+
 </Project>
+
