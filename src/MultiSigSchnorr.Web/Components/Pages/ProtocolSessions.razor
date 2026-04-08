@@ -1,0 +1,282 @@
+@page "/protocol-sessions"
+@rendermode InteractiveServer
+@using MultiSigSchnorr.Contracts.Diagnostics
+@using MultiSigSchnorr.Contracts.ProtocolSessions
+@inject MultiSigSchnorr.Web.Services.Api.ProtocolSessionsApiClient ApiClient
+
+<PageTitle>Protocol Sessions</PageTitle>
+
+<h1>Protocol Sessions</h1>
+
+@if (!string.IsNullOrWhiteSpace(_error))
+{
+    <div class="alert alert-danger">@_error</div>
+}
+
+@if (!string.IsNullOrWhiteSpace(_info))
+{
+    <div class="alert alert-success">@_info</div>
+}
+
+@if (_seed is null)
+{
+    <p><em>Loading seed data...</em></p>
+}
+else
+{
+    <div class="card mb-4">
+        <div class="card-body">
+            <h5 class="card-title">Seed Data</h5>
+            <p><strong>Epoch:</strong> @_seed.EpochId</p>
+            <p><strong>Participants:</strong></p>
+            <ul>
+                @foreach (var participantId in _seed.ParticipantIds)
+                {
+                    <li>@participantId</li>
+                }
+            </ul>
+
+            <div class="mb-3">
+                <label class="form-label">Message</label>
+                <input class="form-control" @bind="_message" />
+            </div>
+
+            <button class="btn btn-primary" @onclick="CreateSessionAsync">
+                Create Protocol Session
+            </button>
+        </div>
+    </div>
+}
+
+@if (_session is not null)
+{
+    <div class="card mb-4">
+        <div class="card-body">
+            <h5 class="card-title">Session State</h5>
+            <p><strong>Session:</strong> @_session.SessionId</p>
+            <p><strong>Status:</strong> @_session.SessionStatus</p>
+            <p><strong>Epoch:</strong> @_session.EpochId (@_session.EpochNumber)</p>
+            <p><strong>All commitments:</strong> @_session.AllCommitmentsPublished</p>
+            <p><strong>All reveals:</strong> @_session.AllNoncesRevealed</p>
+            <p><strong>All partial signatures:</strong> @_session.AllPartialSignaturesSubmitted</p>
+
+            <div class="mb-3">
+                <button class="btn btn-outline-secondary" @onclick="RefreshAsync">
+                    Refresh State
+                </button>
+            </div>
+
+            <div class="mb-3">
+                <p><strong>Aggregate Public Key:</strong></p>
+                <code>@_session.AggregatePublicKeyHex</code>
+
+                @if (!string.IsNullOrWhiteSpace(_session.AggregateNoncePointHex))
+                {
+                    <p class="mt-3"><strong>Aggregate Nonce Point:</strong></p>
+                    <code>@_session.AggregateNoncePointHex</code>
+                }
+
+                @if (!string.IsNullOrWhiteSpace(_session.ChallengeHex))
+                {
+                    <p class="mt-3"><strong>Challenge:</strong></p>
+                    <code>@_session.ChallengeHex</code>
+                }
+
+                @if (!string.IsNullOrWhiteSpace(_session.AggregateSignatureScalarHex))
+                {
+                    <p class="mt-3"><strong>Aggregate Signature Scalar:</strong></p>
+                    <code>@_session.AggregateSignatureScalarHex</code>
+                }
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-body">
+            <h5 class="card-title">Participants</h5>
+
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Participant</th>
+                        <th>Commitment</th>
+                        <th>Reveal</th>
+                        <th>Partial Signature</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                @foreach (var participant in _session.Participants)
+                {
+                    <tr>
+                        <td>
+                            <div><strong>@participant.DisplayName</strong></div>
+                            <div><small>@participant.ParticipantId</small></div>
+                        </td>
+                        <td>@participant.HasCommitment</td>
+                        <td>@participant.HasReveal</td>
+                        <td>@participant.HasPartialSignature</td>
+                        <td>
+                            <div class="d-flex gap-2 flex-wrap">
+                                <button class="btn btn-sm btn-outline-primary"
+                                        disabled="@(!CanPublishCommitment(participant))"
+                                        @onclick="() => PublishCommitmentAsync(participant.ParticipantId)">
+                                    Publish Commitment
+                                </button>
+
+                                <button class="btn btn-sm btn-outline-warning"
+                                        disabled="@(!CanRevealNonce(participant))"
+                                        @onclick="() => RevealNonceAsync(participant.ParticipantId)">
+                                    Reveal Nonce
+                                </button>
+
+                                <button class="btn btn-sm btn-outline-success"
+                                        disabled="@(!CanSubmitPartialSignature(participant))"
+                                        @onclick="() => SubmitPartialSignatureAsync(participant.ParticipantId)">
+                                    Submit Partial Signature
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+    </div>
+}
+
+@code
+{
+    private DevelopmentSeedApiResponse? _seed;
+    private SessionStateApiResponse? _session;
+    private string _message = "demo-protocol-session";
+    private string? _error;
+    private string? _info;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadSeedAsync();
+    }
+
+    private async Task LoadSeedAsync()
+    {
+        try
+        {
+            _error = null;
+            _seed = await ApiClient.GetSeedAsync();
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+        }
+    }
+
+    private async Task CreateSessionAsync()
+    {
+        if (_seed is null)
+            return;
+
+        try
+        {
+            _error = null;
+            _info = null;
+
+            _session = await ApiClient.CreateProtocolSessionAsync(
+                new CreateProtocolSessionApiRequest
+                {
+                    EpochId = _seed.EpochId,
+                    ParticipantIds = _seed.ParticipantIds,
+                    Message = _message
+                });
+
+            _info = "Protocol session created successfully.";
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+        }
+    }
+
+    private async Task RefreshAsync()
+    {
+        if (_session is null)
+            return;
+
+        try
+        {
+            _error = null;
+            _session = await ApiClient.GetSessionStateAsync(_session.SessionId);
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+        }
+    }
+
+    private async Task PublishCommitmentAsync(Guid participantId)
+    {
+        if (_session is null)
+            return;
+
+        try
+        {
+            _error = null;
+            _info = null;
+            _session = await ApiClient.PublishCommitmentAsync(_session.SessionId, participantId);
+            _info = $"Commitment published for participant '{participantId}'.";
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+        }
+    }
+
+    private async Task RevealNonceAsync(Guid participantId)
+    {
+        if (_session is null)
+            return;
+
+        try
+        {
+            _error = null;
+            _info = null;
+            _session = await ApiClient.RevealNonceAsync(_session.SessionId, participantId);
+            _info = $"Nonce revealed for participant '{participantId}'.";
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+        }
+    }
+
+    private async Task SubmitPartialSignatureAsync(Guid participantId)
+    {
+        if (_session is null)
+            return;
+
+        try
+        {
+            _error = null;
+            _info = null;
+            _session = await ApiClient.SubmitPartialSignatureAsync(_session.SessionId, participantId);
+            _info = $"Partial signature submitted for participant '{participantId}'.";
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+        }
+    }
+
+    private static bool CanPublishCommitment(SessionParticipantStateApiResponse participant)
+        => !participant.HasCommitment;
+
+    private bool CanRevealNonce(SessionParticipantStateApiResponse participant)
+        => _session is not null
+           && _session.AllCommitmentsPublished
+           && !participant.HasReveal;
+
+    private bool CanSubmitPartialSignature(SessionParticipantStateApiResponse participant)
+        => _session is not null
+           && _session.AllNoncesRevealed
+           && !participant.HasPartialSignature;
+}

@@ -1,26 +1,42 @@
+using Microsoft.Extensions.Options;
 using MultiSigSchnorr.Web.Components;
+using MultiSigSchnorr.Web.Services.Api;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
+builder.Services.Configure<ApiOptions>(
+    builder.Configuration.GetSection("Api"));
+
+builder.Services.AddHttpClient<ProtocolSessionsApiClient>((sp, client) =>
+{
+    var options = sp.GetRequiredService<IOptions<ApiOptions>>().Value;
+    var baseUrl = options.BaseUrl?.Trim();
+
+    if (string.IsNullOrWhiteSpace(baseUrl))
+        throw new InvalidOperationException("Api:BaseUrl is not configured.");
+
+    if (!baseUrl.EndsWith("/"))
+        baseUrl += "/";
+
+    client.BaseAddress = new Uri(baseUrl, UriKind.Absolute);
+});
+
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Error", createScopeForErrors: true);
-    // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
     app.UseHsts();
 }
-app.UseStatusCodePagesWithReExecute("/not-found", createScopeForStatusCodePages: true);
-app.UseHttpsRedirection();
 
+app.UseHttpsRedirection();
 app.UseAntiforgery();
 
 app.MapStaticAssets();
+
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
 
