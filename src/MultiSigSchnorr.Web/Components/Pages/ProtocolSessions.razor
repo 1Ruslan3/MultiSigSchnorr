@@ -2,161 +2,294 @@
 @rendermode InteractiveServer
 @using MultiSigSchnorr.Contracts.Diagnostics
 @using MultiSigSchnorr.Contracts.ProtocolSessions
+@using MultiSigSchnorr.Domain.Enums
 @inject MultiSigSchnorr.Web.Services.Api.ProtocolSessionsApiClient ApiClient
 
 <PageTitle>Protocol Sessions</PageTitle>
 
-<h1>Protocol Sessions</h1>
-
-@if (!string.IsNullOrWhiteSpace(_error))
-{
-    <div class="alert alert-danger">@_error</div>
-}
-
-@if (!string.IsNullOrWhiteSpace(_info))
-{
-    <div class="alert alert-success">@_info</div>
-}
-
-@if (_seed is null)
-{
-    <p><em>Loading seed data...</em></p>
-}
-else
-{
-    <div class="card mb-4">
-        <div class="card-body">
-            <h5 class="card-title">Seed Data</h5>
-            <p><strong>Epoch:</strong> @_seed.EpochId</p>
-            <p><strong>Participants:</strong></p>
-            <ul>
-                @foreach (var participantId in _seed.ParticipantIds)
-                {
-                    <li>@participantId</li>
-                }
-            </ul>
-
-            <div class="mb-3">
-                <label class="form-label">Message</label>
-                <input class="form-control" @bind="_message" />
-            </div>
-
-            <button class="btn btn-primary" @onclick="CreateSessionAsync">
-                Create Protocol Session
-            </button>
+<div class="protocol-page">
+    <div class="page-header">
+        <div>
+            <h1>Protocol Sessions</h1>
+            <p class="page-subtitle">
+                Управление коллективной подписью Шнорра: создание сессии, прохождение раундов и верификация итоговой подписи.
+            </p>
         </div>
     </div>
-}
 
-@if (_session is not null)
-{
-    <div class="card mb-4">
-        <div class="card-body">
-            <h5 class="card-title">Session State</h5>
-            <p><strong>Session:</strong> @_session.SessionId</p>
-            <p><strong>Status:</strong> @_session.SessionStatus</p>
-            <p><strong>Epoch:</strong> @_session.EpochId (@_session.EpochNumber)</p>
-            <p><strong>All commitments:</strong> @_session.AllCommitmentsPublished</p>
-            <p><strong>All reveals:</strong> @_session.AllNoncesRevealed</p>
-            <p><strong>All partial signatures:</strong> @_session.AllPartialSignaturesSubmitted</p>
+    @if (!string.IsNullOrWhiteSpace(_error))
+    {
+        <div class="alert alert-danger">@_error</div>
+    }
 
-            <div class="mb-3">
-                <button class="btn btn-outline-secondary" @onclick="RefreshAsync">
-                    Refresh State
-                </button>
+    @if (!string.IsNullOrWhiteSpace(_info))
+    {
+        <div class="alert alert-success">@_info</div>
+    }
 
-                <button class="btn btn-outline-dark ms-2"
-                        disabled="@(_session is null || _session.SessionStatus.ToString() != "Completed")"
-                        @onclick="VerifyAsync">
-                    Verify Signature
-                </button>
+    <div class="protocol-grid">
+        <section class="left-column">
+            <div class="panel-card">
+                <div class="panel-card-header">
+                    <h3>Seed данные</h3>
+                </div>
+
+                @if (_seed is null)
+                {
+                    <div class="loading-box">
+                        <em>Загрузка seed-данных...</em>
+                    </div>
+                }
+                else
+                {
+                    <div class="seed-meta">
+                        <div><span>Epoch ID:</span> @_seed.EpochId</div>
+                        <div><span>Epoch Number:</span> @_seed.EpochNumber</div>
+                    </div>
+
+                    <div class="seed-participants">
+                        <h4>Участники</h4>
+                        <ul>
+                            @foreach (var participantId in _seed.ParticipantIds)
+                            {
+                                <li>@participantId</li>
+                            }
+                        </ul>
+                    </div>
+
+                    <div class="form-block">
+                        <label for="message-input">Сообщение</label>
+                        <textarea id="message-input" class="form-control protocol-textarea" @bind="_message"></textarea>
+                    </div>
+
+                    <div class="action-row">
+                        <button class="btn btn-primary" @onclick="CreateSessionAsync">
+                            Создать протокольную сессию
+                        </button>
+                        <button class="btn btn-outline-secondary" @onclick="LoadSeedAsync">
+                            Обновить seed
+                        </button>
+                    </div>
+                }
             </div>
 
-            @if (!string.IsNullOrWhiteSpace(_verificationMessage))
+            <div class="panel-card">
+                <div class="panel-card-header">
+                    <h3>История созданных сессий</h3>
+                </div>
+
+                @if (_sessionHistory.Count == 0)
+                {
+                    <div class="empty-box">Пока нет созданных сессий.</div>
+                }
+                else
+                {
+                    <div class="history-list">
+                        @foreach (var sessionId in _sessionHistory)
+                        {
+                            <button class="history-item @(IsCurrentSession(sessionId) ? "active" : null)"
+                                    @onclick="() => LoadSessionAsync(sessionId)">
+                                @sessionId
+                            </button>
+                        }
+                    </div>
+                }
+            </div>
+        </section>
+
+        <section class="right-column">
+            @if (_session is null)
             {
-                <div class="mt-3 alert @(_isSignatureValid == true ? "alert-success" : "alert-warning")">
-                    @_verificationMessage
+                <div class="panel-card">
+                    <div class="empty-state">
+                        <h3>Сессия не выбрана</h3>
+                        <p>Создай новую протокольную сессию или выбери одну из истории.</p>
+                    </div>
                 </div>
             }
+            else
+            {
+                <div class="panel-card">
+                    <div class="panel-card-header">
+                        <h3>Текущее состояние сессии</h3>
+                        <span class="status-pill status-@GetStatusCss(_session.SessionStatus)">
+                            @_session.SessionStatus
+                        </span>
+                    </div>
 
-            <div class="mb-3">
-                <p><strong>Aggregate Public Key:</strong></p>
-                <code>@_session.AggregatePublicKeyHex</code>
+                    <div class="session-meta-grid">
+                        <div class="meta-box">
+                            <div class="meta-label">Session ID</div>
+                            <code>@_session.SessionId</code>
+                        </div>
+                        <div class="meta-box">
+                            <div class="meta-label">Epoch</div>
+                            <div>@_session.EpochId</div>
+                            <small>№ @_session.EpochNumber</small>
+                        </div>
+                        <div class="meta-box">
+                            <div class="meta-label">Message Digest</div>
+                            <code>@_session.MessageDigestHex</code>
+                        </div>
+                        <div class="meta-box">
+                            <div class="meta-label">Aggregate Public Key</div>
+                            <code>@_session.AggregatePublicKeyHex</code>
+                        </div>
+                    </div>
+                </div>
 
-                @if (!string.IsNullOrWhiteSpace(_session.AggregateNoncePointHex))
-                {
-                    <p class="mt-3"><strong>Aggregate Nonce Point:</strong></p>
-                    <code>@_session.AggregateNoncePointHex</code>
-                }
+                <div class="panel-card">
+                    <div class="panel-card-header">
+                        <h3>Этапы протокола</h3>
+                    </div>
 
-                @if (!string.IsNullOrWhiteSpace(_session.ChallengeHex))
-                {
-                    <p class="mt-3"><strong>Challenge:</strong></p>
-                    <code>@_session.ChallengeHex</code>
-                }
+                    <div class="stages-grid">
+                        <div class="stage-item @GetStageCss(_session.SessionStatus == SessionStatus.Created)">
+                            <div class="stage-title">1. Created</div>
+                            <div class="stage-desc">Сессия создана и готова к раунду commitments.</div>
+                        </div>
 
-                @if (!string.IsNullOrWhiteSpace(_session.AggregateSignatureScalarHex))
-                {
-                    <p class="mt-3"><strong>Aggregate Signature Scalar:</strong></p>
-                    <code>@_session.AggregateSignatureScalarHex</code>
-                }
-            </div>
-        </div>
-    </div>
+                        <div class="stage-item @GetStageCss(_session.AllCommitmentsPublished)">
+                            <div class="stage-title">2. Commitments</div>
+                            <div class="stage-desc">Все участники опубликовали commitments.</div>
+                        </div>
 
-    <div class="card">
-        <div class="card-body">
-            <h5 class="card-title">Participants</h5>
+                        <div class="stage-item @GetStageCss(_session.AllNoncesRevealed)">
+                            <div class="stage-title">3. Reveal Nonce</div>
+                            <div class="stage-desc">Все участники раскрыли публичные nonce.</div>
+                        </div>
 
-            <table class="table">
-                <thead>
-                    <tr>
-                        <th>Participant</th>
-                        <th>Commitment</th>
-                        <th>Reveal</th>
-                        <th>Partial Signature</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                @foreach (var participant in _session.Participants)
-                {
-                    <tr>
-                        <td>
-                            <div><strong>@participant.DisplayName</strong></div>
-                            <div><small>@participant.ParticipantId</small></div>
-                        </td>
-                        <td>@participant.HasCommitment</td>
-                        <td>@participant.HasReveal</td>
-                        <td>@participant.HasPartialSignature</td>
-                        <td>
-                            <div class="d-flex gap-2 flex-wrap">
-                                <button class="btn btn-sm btn-outline-primary"
-                                        disabled="@(!CanPublishCommitment(participant))"
-                                        @onclick="() => PublishCommitmentAsync(participant.ParticipantId)">
-                                    Publish Commitment
-                                </button>
+                        <div class="stage-item @GetStageCss(_session.AllPartialSignaturesSubmitted)">
+                            <div class="stage-title">4. Partial Signatures</div>
+                            <div class="stage-desc">Все частичные подписи отправлены.</div>
+                        </div>
 
-                                <button class="btn btn-sm btn-outline-warning"
-                                        disabled="@(!CanRevealNonce(participant))"
-                                        @onclick="() => RevealNonceAsync(participant.ParticipantId)">
-                                    Reveal Nonce
-                                </button>
+                        <div class="stage-item @GetStageCss(_session.SessionStatus == SessionStatus.Completed)">
+                            <div class="stage-title">5. Completed</div>
+                            <div class="stage-desc">Итоговая агрегированная подпись сформирована.</div>
+                        </div>
+                    </div>
 
-                                <button class="btn btn-sm btn-outline-success"
-                                        disabled="@(!CanSubmitPartialSignature(participant))"
-                                        @onclick="() => SubmitPartialSignatureAsync(participant.ParticipantId)">
-                                    Submit Partial Signature
-                                </button>
+                    <div class="action-row mt-3">
+                        <button class="btn btn-outline-secondary" @onclick="RefreshAsync">
+                            Обновить состояние
+                        </button>
+
+                        <button class="btn btn-outline-dark"
+                                disabled="@(_session.SessionStatus != SessionStatus.Completed)"
+                                @onclick="VerifyAsync">
+                            Проверить итоговую подпись
+                        </button>
+                    </div>
+
+                    @if (!string.IsNullOrWhiteSpace(_verificationMessage))
+                    {
+                        <div class="verification-box @(_isSignatureValid == true ? "valid" : "invalid")">
+                            @_verificationMessage
+                        </div>
+                    }
+                </div>
+
+                <div class="panel-card">
+                    <div class="panel-card-header">
+                        <h3>Итоговая подпись и служебные параметры</h3>
+                    </div>
+
+                    <div class="signature-grid">
+                        <div class="signature-box">
+                            <div class="signature-label">Aggregate Nonce Point</div>
+                            <code>@(string.IsNullOrWhiteSpace(_session.AggregateNoncePointHex) ? "—" : _session.AggregateNoncePointHex)</code>
+                        </div>
+
+                        <div class="signature-box">
+                            <div class="signature-label">Challenge</div>
+                            <code>@(string.IsNullOrWhiteSpace(_session.ChallengeHex) ? "—" : _session.ChallengeHex)</code>
+                        </div>
+
+                        <div class="signature-box">
+                            <div class="signature-label">Aggregate Signature Nonce Point</div>
+                            <code>@(string.IsNullOrWhiteSpace(_session.AggregateSignatureNoncePointHex) ? "—" : _session.AggregateSignatureNoncePointHex)</code>
+                        </div>
+
+                        <div class="signature-box">
+                            <div class="signature-label">Aggregate Signature Scalar</div>
+                            <code>@(string.IsNullOrWhiteSpace(_session.AggregateSignatureScalarHex) ? "—" : _session.AggregateSignatureScalarHex)</code>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="panel-card">
+                    <div class="panel-card-header">
+                        <h3>Участники</h3>
+                    </div>
+
+                    <div class="participants-list">
+                        @foreach (var participant in _session.Participants)
+                        {
+                            <div class="participant-card">
+                                <div class="participant-header">
+                                    <div>
+                                        <div class="participant-name">@participant.DisplayName</div>
+                                        <div class="participant-id">@participant.ParticipantId</div>
+                                    </div>
+
+                                    <div class="participant-flags">
+                                        <span class="flag @(participant.HasCommitment ? "done" : null)">Commitment</span>
+                                        <span class="flag @(participant.HasReveal ? "done" : null)">Reveal</span>
+                                        <span class="flag @(participant.HasPartialSignature ? "done" : null)">Partial</span>
+                                    </div>
+                                </div>
+
+                                <div class="participant-data-grid">
+                                    <div>
+                                        <div class="data-label">Public Key</div>
+                                        <code>@participant.PublicKeyHex</code>
+                                    </div>
+                                    <div>
+                                        <div class="data-label">Aggregation Coefficient</div>
+                                        <code>@participant.AggregationCoefficientHex</code>
+                                    </div>
+                                    <div>
+                                        <div class="data-label">Commitment</div>
+                                        <code>@(string.IsNullOrWhiteSpace(participant.CommitmentHex) ? "—" : participant.CommitmentHex)</code>
+                                    </div>
+                                    <div>
+                                        <div class="data-label">Public Nonce Point</div>
+                                        <code>@(string.IsNullOrWhiteSpace(participant.PublicNoncePointHex) ? "—" : participant.PublicNoncePointHex)</code>
+                                    </div>
+                                    <div>
+                                        <div class="data-label">Partial Signature</div>
+                                        <code>@(string.IsNullOrWhiteSpace(participant.PartialSignatureHex) ? "—" : participant.PartialSignatureHex)</code>
+                                    </div>
+                                </div>
+
+                                <div class="action-row">
+                                    <button class="btn btn-sm btn-outline-primary"
+                                            disabled="@(!CanPublishCommitment(participant))"
+                                            @onclick="() => PublishCommitmentAsync(participant.ParticipantId)">
+                                        Publish Commitment
+                                    </button>
+
+                                    <button class="btn btn-sm btn-outline-warning"
+                                            disabled="@(!CanRevealNonce(participant))"
+                                            @onclick="() => RevealNonceAsync(participant.ParticipantId)">
+                                        Reveal Nonce
+                                    </button>
+
+                                    <button class="btn btn-sm btn-outline-success"
+                                            disabled="@(!CanSubmitPartialSignature(participant))"
+                                            @onclick="() => SubmitPartialSignatureAsync(participant.ParticipantId)">
+                                        Submit Partial Signature
+                                    </button>
+                                </div>
                             </div>
-                        </td>
-                    </tr>
-                }
-                </tbody>
-            </table>
-        </div>
+                        }
+                    </div>
+                </div>
+            }
+        </section>
     </div>
-}
+</div>
 
 @code
 {
@@ -167,6 +300,7 @@ else
     private string? _info;
     private string? _verificationMessage;
     private bool? _isSignatureValid;
+    private readonly List<Guid> _sessionHistory = new();
 
     protected override async Task OnInitializedAsync()
     {
@@ -204,9 +338,26 @@ else
                     Message = _message
                 });
 
+            AddSessionToHistory(_session.SessionId);
+
             _verificationMessage = null;
             _isSignatureValid = null;
-            _info = "Protocol session created successfully.";
+            _info = "Протокольная сессия успешно создана.";
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+        }
+    }
+
+    private async Task LoadSessionAsync(Guid sessionId)
+    {
+        try
+        {
+            _error = null;
+            _session = await ApiClient.GetSessionStateAsync(sessionId);
+            _verificationMessage = null;
+            _isSignatureValid = null;
         }
         catch (Exception ex)
         {
@@ -242,7 +393,7 @@ else
             _session = await ApiClient.PublishCommitmentAsync(_session.SessionId, participantId);
             _verificationMessage = null;
             _isSignatureValid = null;
-            _info = $"Commitment published for participant '{participantId}'.";
+            _info = $"Commitment опубликован для участника '{participantId}'.";
         }
         catch (Exception ex)
         {
@@ -262,7 +413,7 @@ else
             _session = await ApiClient.RevealNonceAsync(_session.SessionId, participantId);
             _verificationMessage = null;
             _isSignatureValid = null;
-            _info = $"Nonce revealed for participant '{participantId}'.";
+            _info = $"Nonce раскрыт для участника '{participantId}'.";
         }
         catch (Exception ex)
         {
@@ -282,7 +433,7 @@ else
             _session = await ApiClient.SubmitPartialSignatureAsync(_session.SessionId, participantId);
             _verificationMessage = null;
             _isSignatureValid = null;
-            _info = $"Partial signature submitted for participant '{participantId}'.";
+            _info = $"Частичная подпись отправлена для участника '{participantId}'.";
         }
         catch (Exception ex)
         {
@@ -308,6 +459,17 @@ else
         }
     }
 
+    private void AddSessionToHistory(Guid sessionId)
+    {
+        if (_sessionHistory.Contains(sessionId))
+            return;
+
+        _sessionHistory.Insert(0, sessionId);
+    }
+
+    private bool IsCurrentSession(Guid sessionId)
+        => _session?.SessionId == sessionId;
+
     private static bool CanPublishCommitment(SessionParticipantStateApiResponse participant)
         => !participant.HasCommitment;
 
@@ -320,4 +482,19 @@ else
         => _session is not null
            && _session.AllNoncesRevealed
            && !participant.HasPartialSignature;
+
+    private static string GetStatusCss(SessionStatus status) => status switch
+    {
+        SessionStatus.Created => "created",
+        SessionStatus.CommitmentsCollection => "commitments",
+        SessionStatus.NonceRevealCollection => "reveal",
+        SessionStatus.PartialSignaturesCollection => "partials",
+        SessionStatus.Completed => "completed",
+        SessionStatus.Failed => "failed",
+        SessionStatus.Cancelled => "cancelled",
+        _ => "default"
+    };
+
+    private static string GetStageCss(bool isCompleted)
+        => isCompleted ? "stage-done" : "stage-pending";
 }
