@@ -5,6 +5,7 @@ using MultiSigSchnorr.Application.UseCases.PublishCommitment;
 using MultiSigSchnorr.Application.UseCases.RevealNonce;
 using MultiSigSchnorr.Application.UseCases.SubmitPartialSignature;
 using MultiSigSchnorr.Contracts.ProtocolSessions;
+using MultiSigSchnorr.Application.UseCases.VerifyProtocolSessionSignature;
 
 namespace MultiSigSchnorr.Api.Controllers;
 
@@ -17,19 +18,22 @@ public sealed class ProtocolSessionsController : ControllerBase
     private readonly RevealNonceHandler _revealNonceHandler;
     private readonly SubmitPartialSignatureHandler _submitPartialSignatureHandler;
     private readonly GetSessionStateHandler _getSessionStateHandler;
+    private readonly VerifyProtocolSessionSignatureHandler _verifyProtocolSessionSignatureHandler;
 
     public ProtocolSessionsController(
         CreateProtocolSessionHandler createProtocolSessionHandler,
         PublishCommitmentHandler publishCommitmentHandler,
         RevealNonceHandler revealNonceHandler,
         SubmitPartialSignatureHandler submitPartialSignatureHandler,
-        GetSessionStateHandler getSessionStateHandler)
+        GetSessionStateHandler getSessionStateHandler,
+        VerifyProtocolSessionSignatureHandler verifyProtocolSessionSignatureHandler)
     {
         _createProtocolSessionHandler = createProtocolSessionHandler;
         _publishCommitmentHandler = publishCommitmentHandler;
         _revealNonceHandler = revealNonceHandler;
         _submitPartialSignatureHandler = submitPartialSignatureHandler;
         _getSessionStateHandler = getSessionStateHandler;
+        _verifyProtocolSessionSignatureHandler = verifyProtocolSessionSignatureHandler;
     }
 
     [HttpPost]
@@ -206,5 +210,36 @@ public sealed class ProtocolSessionsController : ControllerBase
                 })
                 .ToList()
         };
+    }
+
+    [HttpPost("{id:guid}/verify")]
+    public async Task<ActionResult<VerifyProtocolSessionSignatureApiResponse>> Verify(
+        Guid id,
+        [FromBody] VerifyProtocolSessionSignatureApiRequest request,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            if (request.SessionId != Guid.Empty && request.SessionId != id)
+                return BadRequest(new { error = "Request session id does not match route id." });
+
+            var result = await _verifyProtocolSessionSignatureHandler.HandleAsync(
+                new VerifyProtocolSessionSignatureRequest
+                {
+                    SessionId = id
+                },
+                cancellationToken);
+
+            return Ok(new VerifyProtocolSessionSignatureApiResponse
+            {
+                SessionId = result.SessionId,
+                IsValid = result.IsValid,
+                Message = result.Message
+            });
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or ArgumentException)
+        {
+            return BadRequest(new { error = ex.Message });
+        }
     }
 }

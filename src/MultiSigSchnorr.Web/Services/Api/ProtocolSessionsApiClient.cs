@@ -99,4 +99,26 @@ public sealed class ProtocolSessionsApiClient
 
         return result ?? throw new InvalidOperationException("Session state response was empty.");
     }
+
+    public async Task<VerifyProtocolSessionSignatureApiResponse> VerifyProtocolSessionSignatureAsync(
+                 Guid sessionId,
+                 CancellationToken cancellationToken = default)
+    {
+        using var response = await _httpClient.PostAsJsonAsync(
+            $"api/protocol-sessions/{sessionId}/verify",
+            new VerifyProtocolSessionSignatureApiRequest { SessionId = sessionId },
+            cancellationToken);
+
+        if (!response.IsSuccessStatusCode)
+        {
+            var error = await response.Content.ReadAsStringAsync(cancellationToken);
+            throw new InvalidOperationException(
+                $"API request failed with status {(int)response.StatusCode}: {error}");
+        }
+
+        var result = await response.Content.ReadFromJsonAsync<VerifyProtocolSessionSignatureApiResponse>(
+            cancellationToken);
+
+        return result ?? throw new InvalidOperationException("Verify response was empty.");
+    }
 }

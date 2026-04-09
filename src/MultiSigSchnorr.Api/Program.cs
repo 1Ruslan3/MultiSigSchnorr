@@ -15,6 +15,7 @@ using MultiSigSchnorr.Crypto.Security;
 using MultiSigSchnorr.Infrastructure.Repositories;
 using MultiSigSchnorr.Protocol.Epochs;
 using MultiSigSchnorr.Protocol.Sessions;
+using MultiSigSchnorr.Application.UseCases.VerifyProtocolSessionSignature;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -27,6 +28,7 @@ builder.Services.AddSingleton<MessageDigestService>();
 builder.Services.AddSingleton<Sha256HashService>();
 builder.Services.AddSingleton<SystemRandomSource>();
 builder.Services.AddSingleton<EpochParticipationGuard>();
+builder.Services.AddScoped<VerifyProtocolSessionSignatureHandler>();
 
 builder.Services.AddSingleton<PublicKeyGenerationService>(sp =>
     new PublicKeyGenerationService(sp.GetRequiredService<P256CurveContext>()));
