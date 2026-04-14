@@ -23,15 +23,15 @@ public sealed class ProtocolSessionsApiClient
     }
 
     public async Task<IReadOnlyList<ProtocolSessionHistoryItemApiResponse>> GetSessionHistoryAsync(
-    int take = 20,
-    CancellationToken cancellationToken = default)
+        int take = 20,
+        CancellationToken cancellationToken = default)
     {
-    IReadOnlyList<ProtocolSessionHistoryItemApiResponse>? result =
-        await _httpClient.GetFromJsonAsync<List<ProtocolSessionHistoryItemApiResponse>>(
-            $"api/protocol-sessions?take={take}",
-            cancellationToken);
+        IReadOnlyList<ProtocolSessionHistoryItemApiResponse>? result =
+            await _httpClient.GetFromJsonAsync<List<ProtocolSessionHistoryItemApiResponse>>(
+                $"api/protocol-sessions?take={take}",
+                cancellationToken);
 
-    return result ?? Array.Empty<ProtocolSessionHistoryItemApiResponse>();
+        return result ?? Array.Empty<ProtocolSessionHistoryItemApiResponse>();
     }
 
     public async Task<SessionStateApiResponse> CreateProtocolSessionAsync(
@@ -94,6 +94,17 @@ public sealed class ProtocolSessionsApiClient
             cancellationToken);
 
         return result ?? throw new InvalidOperationException("Session state response was empty.");
+    }
+
+    public async Task<ProtocolSessionReportApiResponse> GetSessionReportAsync(
+        Guid sessionId,
+        CancellationToken cancellationToken = default)
+    {
+        var result = await _httpClient.GetFromJsonAsync<ProtocolSessionReportApiResponse>(
+            $"api/protocol-sessions/{sessionId}/report",
+            cancellationToken);
+
+        return result ?? throw new InvalidOperationException("Session report response was empty.");
     }
 
     public async Task<VerifyProtocolSessionSignatureApiResponse> VerifyProtocolSessionSignatureAsync(

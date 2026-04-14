@@ -1,6 +1,7 @@
 using MultiSigSchnorr.Api.Development;
 using MultiSigSchnorr.Application.Repositories;
 using MultiSigSchnorr.Application.UseCases.CreateProtocolSession;
+using MultiSigSchnorr.Application.UseCases.ExportProtocolSessionReport;
 using MultiSigSchnorr.Application.UseCases.GetProtocolSessionHistory;
 using MultiSigSchnorr.Application.UseCases.GetSessionState;
 using MultiSigSchnorr.Application.UseCases.PublishCommitment;
@@ -93,6 +94,7 @@ builder.Services.AddScoped<SubmitPartialSignatureHandler>();
 builder.Services.AddScoped<GetSessionStateHandler>();
 builder.Services.AddScoped<VerifyProtocolSessionSignatureHandler>();
 builder.Services.AddScoped<GetProtocolSessionHistoryHandler>();
+builder.Services.AddScoped<ExportProtocolSessionReportHandler>();
 
 var app = builder.Build();
 

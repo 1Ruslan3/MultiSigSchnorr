@@ -16,7 +16,7 @@ public sealed class ProtocolSessionsWorkflowTests : IClassFixture<MultiSigSchnor
     }
 
     [Fact]
-    public async Task Full_Workflow_Should_Create_Complete_And_Verify_Aggregate_Signature()
+    public async Task Full_Workflow_Should_Create_Complete_Verify_And_Export_Report()
     {
         using var client = _factory.CreateClient();
 
@@ -90,6 +90,17 @@ public sealed class ProtocolSessionsWorkflowTests : IClassFixture<MultiSigSchnor
 
         Assert.True(verification.IsValid);
         Assert.Equal("Aggregate signature is valid.", verification.Message);
+
+        var report = await GetRequiredAsync<ProtocolSessionReportApiResponse>(
+            client,
+            $"/api/protocol-sessions/{createdSession.SessionId}/report");
+
+        Assert.Equal(createdSession.SessionId, report.SessionId);
+        Assert.Equal(SessionStatus.Completed, report.SessionStatus);
+        Assert.True(report.AllCommitmentsPublished);
+        Assert.True(report.AllNoncesRevealed);
+        Assert.True(report.AllPartialSignaturesSubmitted);
+        Assert.Equal(seed.ParticipantIds.Count, report.Participants.Count);
 
         var finalState = await GetRequiredAsync<SessionStateApiResponse>(
             client,

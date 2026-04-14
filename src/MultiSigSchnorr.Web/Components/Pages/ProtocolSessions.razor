@@ -13,7 +13,7 @@
         <div>
             <h1>Protocol Sessions</h1>
             <p class="page-subtitle">
-                Управление коллективной подписью Шнорра: создание сессии, прохождение раундов и верификация итоговой подписи.
+                Управление коллективной подписью Шнорра: создание сессии, прохождение раундов, верификация и формирование отчёта.
             </p>
         </div>
     </div>
@@ -181,6 +181,12 @@
                                 @onclick="VerifyAsync">
                             Проверить итоговую подпись
                         </button>
+
+                        <button class="btn btn-outline-primary"
+                                disabled="@(_session is null)"
+                                @onclick="LoadReportAsync">
+                            Сформировать отчёт
+                        </button>
                     </div>
 
                     @if (!string.IsNullOrWhiteSpace(_verificationMessage))
@@ -218,6 +224,53 @@
                         </div>
                     </div>
                 </div>
+
+                @if (_report is not null)
+                {
+                    <div class="panel-card">
+                        <div class="panel-card-header">
+                            <h3>Отчёт по протокольной сессии</h3>
+                        </div>
+
+                        <div class="session-meta-grid">
+                            <div class="meta-box">
+                                <div class="meta-label">Created UTC</div>
+                                <div>@_report.CreatedUtc.ToString("yyyy-MM-dd HH:mm:ss")</div>
+                            </div>
+                            <div class="meta-box">
+                                <div class="meta-label">Completed UTC</div>
+                                <div>@(_report.CompletedUtc.HasValue ? _report.CompletedUtc.Value.ToString("yyyy-MM-dd HH:mm:ss") : "—")</div>
+                            </div>
+                            <div class="meta-box">
+                                <div class="meta-label">Status</div>
+                                <div>@_report.SessionStatus</div>
+                            </div>
+                            <div class="meta-box">
+                                <div class="meta-label">Participants Count</div>
+                                <div>@_report.Participants.Count</div>
+                            </div>
+                        </div>
+
+                        <div class="signature-grid mt-3">
+                            <div class="signature-box">
+                                <div class="signature-label">All Commitments Published</div>
+                                <div>@_report.AllCommitmentsPublished</div>
+                            </div>
+                            <div class="signature-box">
+                                <div class="signature-label">All Nonces Revealed</div>
+                                <div>@_report.AllNoncesRevealed</div>
+                            </div>
+                            <div class="signature-box">
+                                <div class="signature-label">All Partial Signatures Submitted</div>
+                                <div>@_report.AllPartialSignaturesSubmitted</div>
+                            </div>
+                            <div class="signature-box">
+                                <div class="signature-label">Aggregate Signature Scalar</div>
+                                <code>@(string.IsNullOrWhiteSpace(_report.AggregateSignatureScalarHex) ? "—" : _report.AggregateSignatureScalarHex)</code>
+                            </div>
+                        </div>
+                    </div>
+                }
 
                 <div class="panel-card">
                     <div class="panel-card-header">
@@ -299,6 +352,7 @@
 
     private DevelopmentSeedApiResponse? _seed;
     private SessionStateApiResponse? _session;
+    private ProtocolSessionReportApiResponse? _report;
     private string _message = "demo-protocol-session";
     private string? _error;
     private string? _info;
@@ -354,6 +408,7 @@
 
             AddSessionToHistory(_session.SessionId);
 
+            _report = null;
             _verificationMessage = null;
             _isSignatureValid = null;
             _info = "Протокольная сессия успешно создана.";
@@ -371,6 +426,7 @@
             _error = null;
             _session = await ApiClient.GetSessionStateAsync(sessionId);
             AddSessionToHistory(sessionId);
+            _report = null;
             _verificationMessage = null;
             _isSignatureValid = null;
         }
@@ -396,6 +452,23 @@
         }
     }
 
+    private async Task LoadReportAsync()
+    {
+        if (_session is null)
+            return;
+
+        try
+        {
+            _error = null;
+            _report = await ApiClient.GetSessionReportAsync(_session.SessionId);
+            _info = "Отчёт по сессии успешно сформирован.";
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+        }
+    }
+
     private async Task PublishCommitmentAsync(Guid participantId)
     {
         if (_session is null)
@@ -406,6 +479,7 @@
             _error = null;
             _info = null;
             _session = await ApiClient.PublishCommitmentAsync(_session.SessionId, participantId);
+            _report = null;
             _verificationMessage = null;
             _isSignatureValid = null;
             _info = $"Commitment опубликован для участника '{participantId}'.";
@@ -426,6 +500,7 @@
             _error = null;
             _info = null;
             _session = await ApiClient.RevealNonceAsync(_session.SessionId, participantId);
+            _report = null;
             _verificationMessage = null;
             _isSignatureValid = null;
             _info = $"Nonce раскрыт для участника '{participantId}'.";
@@ -446,6 +521,7 @@
             _error = null;
             _info = null;
             _session = await ApiClient.SubmitPartialSignatureAsync(_session.SessionId, participantId);
+            _report = null;
             _verificationMessage = null;
             _isSignatureValid = null;
             _info = $"Частичная подпись отправлена для участника '{participantId}'.";

@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using MultiSigSchnorr.Application.UseCases.CreateProtocolSession;
+using MultiSigSchnorr.Application.UseCases.ExportProtocolSessionReport;
 using MultiSigSchnorr.Application.UseCases.GetProtocolSessionHistory;
 using MultiSigSchnorr.Application.UseCases.GetSessionState;
 using MultiSigSchnorr.Application.UseCases.PublishCommitment;
@@ -21,6 +22,7 @@ public sealed class ProtocolSessionsController : ControllerBase
     private readonly GetSessionStateHandler _getSessionStateHandler;
     private readonly VerifyProtocolSessionSignatureHandler _verifyProtocolSessionSignatureHandler;
     private readonly GetProtocolSessionHistoryHandler _getProtocolSessionHistoryHandler;
+    private readonly ExportProtocolSessionReportHandler _exportProtocolSessionReportHandler;
 
     public ProtocolSessionsController(
         CreateProtocolSessionHandler createProtocolSessionHandler,
@@ -29,7 +31,8 @@ public sealed class ProtocolSessionsController : ControllerBase
         SubmitPartialSignatureHandler submitPartialSignatureHandler,
         GetSessionStateHandler getSessionStateHandler,
         VerifyProtocolSessionSignatureHandler verifyProtocolSessionSignatureHandler,
-        GetProtocolSessionHistoryHandler getProtocolSessionHistoryHandler)
+        GetProtocolSessionHistoryHandler getProtocolSessionHistoryHandler,
+        ExportProtocolSessionReportHandler exportProtocolSessionReportHandler)
     {
         _createProtocolSessionHandler = createProtocolSessionHandler;
         _publishCommitmentHandler = publishCommitmentHandler;
@@ -38,6 +41,7 @@ public sealed class ProtocolSessionsController : ControllerBase
         _getSessionStateHandler = getSessionStateHandler;
         _verifyProtocolSessionSignatureHandler = verifyProtocolSessionSignatureHandler;
         _getProtocolSessionHistoryHandler = getProtocolSessionHistoryHandler;
+        _exportProtocolSessionReportHandler = exportProtocolSessionReportHandler;
     }
 
     [HttpGet]
@@ -65,6 +69,28 @@ public sealed class ProtocolSessionsController : ControllerBase
             AllNoncesRevealed = x.AllNoncesRevealed,
             AllPartialSignaturesSubmitted = x.AllPartialSignaturesSubmitted
         }).ToList());
+    }
+
+    [HttpGet("{id:guid}/report")]
+    public async Task<ActionResult<ProtocolSessionReportApiResponse>> GetReport(
+        Guid id,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var report = await _exportProtocolSessionReportHandler.HandleAsync(
+                new ExportProtocolSessionReportRequest
+                {
+                    SessionId = id
+                },
+                cancellationToken);
+
+            return Ok(Map(report));
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or ArgumentException)
+        {
+            return NotFound(new { error = ex.Message });
+        }
     }
 
     [HttpPost]
@@ -266,6 +292,43 @@ public sealed class ProtocolSessionsController : ControllerBase
                     HasPartialSignature = p.HasPartialSignature,
                     PublicKeyHex = p.PublicKeyHex,
                     AggregationCoefficientHex = p.AggregationCoefficientHex,
+                    CommitmentHex = p.CommitmentHex,
+                    PublicNoncePointHex = p.PublicNoncePointHex,
+                    PartialSignatureHex = p.PartialSignatureHex
+                })
+                .ToList()
+        };
+    }
+
+    private static ProtocolSessionReportApiResponse Map(ProtocolSessionReportDto dto)
+    {
+        return new ProtocolSessionReportApiResponse
+        {
+            SessionId = dto.SessionId,
+            EpochId = dto.EpochId,
+            EpochNumber = dto.EpochNumber,
+            SessionStatus = dto.SessionStatus,
+            CreatedUtc = dto.CreatedUtc,
+            CompletedUtc = dto.CompletedUtc,
+            MessageDigestHex = dto.MessageDigestHex,
+            AggregatePublicKeyHex = dto.AggregatePublicKeyHex,
+            AggregateNoncePointHex = dto.AggregateNoncePointHex,
+            ChallengeHex = dto.ChallengeHex,
+            AggregateSignatureNoncePointHex = dto.AggregateSignatureNoncePointHex,
+            AggregateSignatureScalarHex = dto.AggregateSignatureScalarHex,
+            AllCommitmentsPublished = dto.AllCommitmentsPublished,
+            AllNoncesRevealed = dto.AllNoncesRevealed,
+            AllPartialSignaturesSubmitted = dto.AllPartialSignaturesSubmitted,
+            Participants = dto.Participants
+                .Select(p => new ProtocolSessionReportParticipantApiResponse
+                {
+                    ParticipantId = p.ParticipantId,
+                    DisplayName = p.DisplayName,
+                    PublicKeyHex = p.PublicKeyHex,
+                    AggregationCoefficientHex = p.AggregationCoefficientHex,
+                    HasCommitment = p.HasCommitment,
+                    HasReveal = p.HasReveal,
+                    HasPartialSignature = p.HasPartialSignature,
                     CommitmentHex = p.CommitmentHex,
                     PublicNoncePointHex = p.PublicNoncePointHex,
                     PartialSignatureHex = p.PartialSignatureHex
