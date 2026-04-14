@@ -7,15 +7,16 @@
     <IsPackable>false</IsPackable>
   </PropertyGroup>
 
-<ItemGroup>
-  <PackageReference Include="coverlet.collector">
-    <PrivateAssets>all</PrivateAssets>
-    <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-  </PackageReference>
-  <PackageReference Include="Microsoft.NET.Test.Sdk" />
-  <PackageReference Include="xunit" />
-  <PackageReference Include="xunit.runner.visualstudio" />
-</ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="coverlet.collector">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+  </ItemGroup>
 
   <ItemGroup>
     <Using Include="Xunit" />
@@ -23,9 +24,8 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\MultiSigSchnorr.Api\MultiSigSchnorr.Api.csproj" />
-    <ProjectReference Include="..\..\src\MultiSigSchnorr.Infrastructure\MultiSigSchnorr.Infrastructure.csproj" />
-    <ProjectReference Include="..\..\src\MultiSigSchnorr.Application\MultiSigSchnorr.Application.csproj" />
     <ProjectReference Include="..\..\src\MultiSigSchnorr.Contracts\MultiSigSchnorr.Contracts.csproj" />
+    <ProjectReference Include="..\..\src\MultiSigSchnorr.Domain\MultiSigSchnorr.Domain.csproj" />
   </ItemGroup>
 
 </Project>

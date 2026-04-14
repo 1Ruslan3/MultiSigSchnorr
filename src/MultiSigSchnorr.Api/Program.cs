@@ -122,3 +122,7 @@ app.MapGet("/", (DevelopmentDataSeeder dataSeeder) =>
 app.MapControllers();
 
 app.Run();
+
+public partial class Program
+{
+}
