@@ -1,0 +1,133 @@
+@page "/protocol-session-history"
+@rendermode InteractiveServer
+@using MultiSigSchnorr.Contracts.ProtocolSessions
+@using MultiSigSchnorr.Domain.Enums
+@inject MultiSigSchnorr.Web.Services.Api.ProtocolSessionsApiClient ApiClient
+
+<PageTitle>Protocol Session History</PageTitle>
+
+<div class="history-page">
+    <div class="history-header">
+        <div>
+            <h1>Protocol Session History</h1>
+            <p class="history-subtitle">
+                Серверная история протокольных сессий, доступных в текущем запуске приложения.
+            </p>
+        </div>
+
+        <div class="history-actions">
+            <button class="btn btn-outline-secondary" @onclick="LoadAsync">
+                Обновить
+            </button>
+        </div>
+    </div>
+
+    @if (!string.IsNullOrWhiteSpace(_error))
+    {
+        <div class="alert alert-danger">@_error</div>
+    }
+
+    @if (_items is null)
+    {
+        <div class="history-card">
+            <em>Загрузка истории сессий...</em>
+        </div>
+    }
+    else if (_items.Count == 0)
+    {
+        <div class="history-card empty">
+            Пока нет сохранённых протокольных сессий.
+        </div>
+    }
+    else
+    {
+        <div class="history-list">
+            @foreach (var item in _items)
+            {
+                <div class="history-card">
+                    <div class="history-card-top">
+                        <div>
+                            <div class="history-session-id">@item.SessionId</div>
+                            <div class="history-meta">
+                                Epoch: @item.EpochId · № @item.EpochNumber
+                            </div>
+                        </div>
+
+                        <span class="status-pill status-@GetStatusCss(item.SessionStatus)">
+                            @item.SessionStatus
+                        </span>
+                    </div>
+
+                    <div class="history-grid">
+                        <div class="history-box">
+                            <div class="history-label">Создано</div>
+                            <div>@item.CreatedUtc.ToString("yyyy-MM-dd HH:mm:ss") UTC</div>
+                        </div>
+
+                        <div class="history-box">
+                            <div class="history-label">Завершено</div>
+                            <div>@(item.CompletedUtc.HasValue ? item.CompletedUtc.Value.ToString("yyyy-MM-dd HH:mm:ss") + " UTC" : "—")</div>
+                        </div>
+
+                        <div class="history-box">
+                            <div class="history-label">Участников</div>
+                            <div>@item.ParticipantsCount</div>
+                        </div>
+
+                        <div class="history-box">
+                            <div class="history-label">Этапы</div>
+                            <div>
+                                C: @item.AllCommitmentsPublished |
+                                R: @item.AllNoncesRevealed |
+                                P: @item.AllPartialSignaturesSubmitted
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="history-open-row">
+                        <a class="btn btn-primary"
+                           href="@($"/protocol-sessions?sessionId={item.SessionId}")">
+                            Открыть сессию
+                        </a>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+@code
+{
+    private IReadOnlyList<ProtocolSessionHistoryItemApiResponse>? _items;
+    private string? _error;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        try
+        {
+            _error = null;
+            _items = await ApiClient.GetSessionHistoryAsync(50);
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+        }
+    }
+
+    private static string GetStatusCss(SessionStatus status) => status switch
+    {
+        SessionStatus.Created => "created",
+        SessionStatus.CommitmentsCollection => "commitments",
+        SessionStatus.NonceRevealCollection => "reveal",
+        SessionStatus.PartialSignaturesCollection => "partials",
+        SessionStatus.Completed => "completed",
+        SessionStatus.Failed => "failed",
+        SessionStatus.Cancelled => "cancelled",
+        _ => "default"
+    };
+}

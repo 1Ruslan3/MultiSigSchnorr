@@ -1,11 +1,12 @@
 using Microsoft.AspNetCore.Mvc;
 using MultiSigSchnorr.Application.UseCases.CreateProtocolSession;
+using MultiSigSchnorr.Application.UseCases.GetProtocolSessionHistory;
 using MultiSigSchnorr.Application.UseCases.GetSessionState;
 using MultiSigSchnorr.Application.UseCases.PublishCommitment;
 using MultiSigSchnorr.Application.UseCases.RevealNonce;
 using MultiSigSchnorr.Application.UseCases.SubmitPartialSignature;
-using MultiSigSchnorr.Contracts.ProtocolSessions;
 using MultiSigSchnorr.Application.UseCases.VerifyProtocolSessionSignature;
+using MultiSigSchnorr.Contracts.ProtocolSessions;
 
 namespace MultiSigSchnorr.Api.Controllers;
 
@@ -19,6 +20,7 @@ public sealed class ProtocolSessionsController : ControllerBase
     private readonly SubmitPartialSignatureHandler _submitPartialSignatureHandler;
     private readonly GetSessionStateHandler _getSessionStateHandler;
     private readonly VerifyProtocolSessionSignatureHandler _verifyProtocolSessionSignatureHandler;
+    private readonly GetProtocolSessionHistoryHandler _getProtocolSessionHistoryHandler;
 
     public ProtocolSessionsController(
         CreateProtocolSessionHandler createProtocolSessionHandler,
@@ -26,7 +28,8 @@ public sealed class ProtocolSessionsController : ControllerBase
         RevealNonceHandler revealNonceHandler,
         SubmitPartialSignatureHandler submitPartialSignatureHandler,
         GetSessionStateHandler getSessionStateHandler,
-        VerifyProtocolSessionSignatureHandler verifyProtocolSessionSignatureHandler)
+        VerifyProtocolSessionSignatureHandler verifyProtocolSessionSignatureHandler,
+        GetProtocolSessionHistoryHandler getProtocolSessionHistoryHandler)
     {
         _createProtocolSessionHandler = createProtocolSessionHandler;
         _publishCommitmentHandler = publishCommitmentHandler;
@@ -34,6 +37,34 @@ public sealed class ProtocolSessionsController : ControllerBase
         _submitPartialSignatureHandler = submitPartialSignatureHandler;
         _getSessionStateHandler = getSessionStateHandler;
         _verifyProtocolSessionSignatureHandler = verifyProtocolSessionSignatureHandler;
+        _getProtocolSessionHistoryHandler = getProtocolSessionHistoryHandler;
+    }
+
+    [HttpGet]
+    public async Task<ActionResult<IReadOnlyList<ProtocolSessionHistoryItemApiResponse>>> GetHistory(
+        [FromQuery] int take = 20,
+        CancellationToken cancellationToken = default)
+    {
+        var items = await _getProtocolSessionHistoryHandler.HandleAsync(
+            new GetProtocolSessionHistoryRequest
+            {
+                Take = take
+            },
+            cancellationToken);
+
+        return Ok(items.Select(x => new ProtocolSessionHistoryItemApiResponse
+        {
+            SessionId = x.SessionId,
+            EpochId = x.EpochId,
+            EpochNumber = x.EpochNumber,
+            SessionStatus = x.SessionStatus,
+            CreatedUtc = x.CreatedUtc,
+            CompletedUtc = x.CompletedUtc,
+            ParticipantsCount = x.ParticipantsCount,
+            AllCommitmentsPublished = x.AllCommitmentsPublished,
+            AllNoncesRevealed = x.AllNoncesRevealed,
+            AllPartialSignaturesSubmitted = x.AllPartialSignaturesSubmitted
+        }).ToList());
     }
 
     [HttpPost]
@@ -158,6 +189,37 @@ public sealed class ProtocolSessionsController : ControllerBase
         }
     }
 
+    [HttpPost("{id:guid}/verify")]
+    public async Task<ActionResult<VerifyProtocolSessionSignatureApiResponse>> Verify(
+        Guid id,
+        [FromBody] VerifyProtocolSessionSignatureApiRequest request,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            if (request.SessionId != Guid.Empty && request.SessionId != id)
+                return BadRequest(new { error = "Request session id does not match route id." });
+
+            var result = await _verifyProtocolSessionSignatureHandler.HandleAsync(
+                new VerifyProtocolSessionSignatureRequest
+                {
+                    SessionId = id
+                },
+                cancellationToken);
+
+            return Ok(new VerifyProtocolSessionSignatureApiResponse
+            {
+                SessionId = result.SessionId,
+                IsValid = result.IsValid,
+                Message = result.Message
+            });
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or ArgumentException)
+        {
+            return BadRequest(new { error = ex.Message });
+        }
+    }
+
     [HttpGet("{id:guid}")]
     public async Task<ActionResult<SessionStateApiResponse>> GetById(
         Guid id,
@@ -210,36 +272,5 @@ public sealed class ProtocolSessionsController : ControllerBase
                 })
                 .ToList()
         };
-    }
-
-    [HttpPost("{id:guid}/verify")]
-    public async Task<ActionResult<VerifyProtocolSessionSignatureApiResponse>> Verify(
-        Guid id,
-        [FromBody] VerifyProtocolSessionSignatureApiRequest request,
-        CancellationToken cancellationToken)
-    {
-        try
-        {
-            if (request.SessionId != Guid.Empty && request.SessionId != id)
-                return BadRequest(new { error = "Request session id does not match route id." });
-
-            var result = await _verifyProtocolSessionSignatureHandler.HandleAsync(
-                new VerifyProtocolSessionSignatureRequest
-                {
-                    SessionId = id
-                },
-                cancellationToken);
-
-            return Ok(new VerifyProtocolSessionSignatureApiResponse
-            {
-                SessionId = result.SessionId,
-                IsValid = result.IsValid,
-                Message = result.Message
-            });
-        }
-        catch (Exception ex) when (ex is InvalidOperationException or ArgumentException)
-        {
-            return BadRequest(new { error = ex.Message });
-        }
     }
 }

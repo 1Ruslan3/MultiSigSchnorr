@@ -26,6 +26,13 @@ public sealed class InMemoryProtocolSessionRepository : IProtocolSessionReposito
         return Task.FromResult(session);
     }
 
+    public Task<IReadOnlyList<NPartyProtocolSession>> ListAsync(
+        CancellationToken cancellationToken = default)
+    {
+        IReadOnlyList<NPartyProtocolSession> result = _sessions.Values.ToList();
+        return Task.FromResult(result);
+    }
+
     public Task UpdateAsync(NPartyProtocolSession session, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(session);

@@ -10,5 +10,8 @@ public interface IProtocolSessionRepository
         Guid sessionId,
         CancellationToken cancellationToken = default);
 
+    Task<IReadOnlyList<NPartyProtocolSession>> ListAsync(
+        CancellationToken cancellationToken = default);
+
     Task UpdateAsync(NPartyProtocolSession session, CancellationToken cancellationToken = default);
 }

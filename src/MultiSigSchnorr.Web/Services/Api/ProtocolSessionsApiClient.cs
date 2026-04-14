@@ -22,6 +22,18 @@ public sealed class ProtocolSessionsApiClient
         return result ?? throw new InvalidOperationException("Seed data response was empty.");
     }
 
+    public async Task<IReadOnlyList<ProtocolSessionHistoryItemApiResponse>> GetSessionHistoryAsync(
+    int take = 20,
+    CancellationToken cancellationToken = default)
+    {
+    IReadOnlyList<ProtocolSessionHistoryItemApiResponse>? result =
+        await _httpClient.GetFromJsonAsync<List<ProtocolSessionHistoryItemApiResponse>>(
+            $"api/protocol-sessions?take={take}",
+            cancellationToken);
+
+    return result ?? Array.Empty<ProtocolSessionHistoryItemApiResponse>();
+    }
+
     public async Task<SessionStateApiResponse> CreateProtocolSessionAsync(
         CreateProtocolSessionApiRequest request,
         CancellationToken cancellationToken = default)
@@ -84,25 +96,9 @@ public sealed class ProtocolSessionsApiClient
         return result ?? throw new InvalidOperationException("Session state response was empty.");
     }
 
-    private static async Task<SessionStateApiResponse> ReadSessionStateAsync(
-        HttpResponseMessage response,
-        CancellationToken cancellationToken)
-    {
-        if (!response.IsSuccessStatusCode)
-        {
-            var error = await response.Content.ReadAsStringAsync(cancellationToken);
-            throw new InvalidOperationException(
-                $"API request failed with status {(int)response.StatusCode}: {error}");
-        }
-
-        var result = await response.Content.ReadFromJsonAsync<SessionStateApiResponse>(cancellationToken);
-
-        return result ?? throw new InvalidOperationException("Session state response was empty.");
-    }
-
     public async Task<VerifyProtocolSessionSignatureApiResponse> VerifyProtocolSessionSignatureAsync(
-                 Guid sessionId,
-                 CancellationToken cancellationToken = default)
+        Guid sessionId,
+        CancellationToken cancellationToken = default)
     {
         using var response = await _httpClient.PostAsJsonAsync(
             $"api/protocol-sessions/{sessionId}/verify",
@@ -120,5 +116,21 @@ public sealed class ProtocolSessionsApiClient
             cancellationToken);
 
         return result ?? throw new InvalidOperationException("Verify response was empty.");
+    }
+
+    private static async Task<SessionStateApiResponse> ReadSessionStateAsync(
+        HttpResponseMessage response,
+        CancellationToken cancellationToken)
+    {
+        if (!response.IsSuccessStatusCode)
+        {
+            var error = await response.Content.ReadAsStringAsync(cancellationToken);
+            throw new InvalidOperationException(
+                $"API request failed with status {(int)response.StatusCode}: {error}");
+        }
+
+        var result = await response.Content.ReadFromJsonAsync<SessionStateApiResponse>(cancellationToken);
+
+        return result ?? throw new InvalidOperationException("Session state response was empty.");
     }
 }

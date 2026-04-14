@@ -1,10 +1,12 @@
 using MultiSigSchnorr.Api.Development;
 using MultiSigSchnorr.Application.Repositories;
 using MultiSigSchnorr.Application.UseCases.CreateProtocolSession;
+using MultiSigSchnorr.Application.UseCases.GetProtocolSessionHistory;
 using MultiSigSchnorr.Application.UseCases.GetSessionState;
 using MultiSigSchnorr.Application.UseCases.PublishCommitment;
 using MultiSigSchnorr.Application.UseCases.RevealNonce;
 using MultiSigSchnorr.Application.UseCases.SubmitPartialSignature;
+using MultiSigSchnorr.Application.UseCases.VerifyProtocolSessionSignature;
 using MultiSigSchnorr.Crypto.Aggregation;
 using MultiSigSchnorr.Crypto.Commitments;
 using MultiSigSchnorr.Crypto.Curves;
@@ -15,7 +17,6 @@ using MultiSigSchnorr.Crypto.Security;
 using MultiSigSchnorr.Infrastructure.Repositories;
 using MultiSigSchnorr.Protocol.Epochs;
 using MultiSigSchnorr.Protocol.Sessions;
-using MultiSigSchnorr.Application.UseCases.VerifyProtocolSessionSignature;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -28,7 +29,6 @@ builder.Services.AddSingleton<MessageDigestService>();
 builder.Services.AddSingleton<Sha256HashService>();
 builder.Services.AddSingleton<SystemRandomSource>();
 builder.Services.AddSingleton<EpochParticipationGuard>();
-builder.Services.AddScoped<VerifyProtocolSessionSignatureHandler>();
 
 builder.Services.AddSingleton<PublicKeyGenerationService>(sp =>
     new PublicKeyGenerationService(sp.GetRequiredService<P256CurveContext>()));
@@ -91,6 +91,8 @@ builder.Services.AddScoped<PublishCommitmentHandler>();
 builder.Services.AddScoped<RevealNonceHandler>();
 builder.Services.AddScoped<SubmitPartialSignatureHandler>();
 builder.Services.AddScoped<GetSessionStateHandler>();
+builder.Services.AddScoped<VerifyProtocolSessionSignatureHandler>();
+builder.Services.AddScoped<GetProtocolSessionHistoryHandler>();
 
 var app = builder.Build();
 

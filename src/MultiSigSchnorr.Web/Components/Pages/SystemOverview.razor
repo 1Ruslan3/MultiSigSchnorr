@@ -1,0 +1,136 @@
+@page "/system-overview"
+@rendermode InteractiveServer
+@using MultiSigSchnorr.Contracts.Diagnostics
+@inject MultiSigSchnorr.Web.Services.Api.ProtocolSessionsApiClient ApiClient
+
+<PageTitle>System Overview</PageTitle>
+
+<div class="overview-page">
+    <div class="overview-header">
+        <div>
+            <h1>System Overview</h1>
+            <p class="overview-subtitle">
+                Обзор seed-данных, активной эпохи и зарегистрированных участников для демонстрации и ручной проверки API.
+            </p>
+        </div>
+    </div>
+
+    @if (!string.IsNullOrWhiteSpace(_error))
+    {
+        <div class="alert alert-danger">@_error</div>
+    }
+
+    @if (_seed is null)
+    {
+        <div class="overview-card">
+            <em>Загрузка системной информации...</em>
+        </div>
+    }
+    else
+    {
+        <div class="overview-grid">
+            <section class="overview-left">
+                <div class="overview-card">
+                    <div class="overview-card-header">
+                        <h3>Активная epoch</h3>
+                    </div>
+
+                    <div class="overview-meta">
+                        <div class="overview-meta-item">
+                            <span class="label">Epoch ID</span>
+                            <code>@_seed.EpochId</code>
+                        </div>
+
+                        <div class="overview-meta-item">
+                            <span class="label">Epoch Number</span>
+                            <div>@_seed.EpochNumber</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="overview-card">
+                    <div class="overview-card-header">
+                        <h3>Использование API</h3>
+                    </div>
+
+                    <div class="overview-api-block">
+                        <p><strong>Создание сессии:</strong></p>
+                        <code>POST /api/protocol-sessions</code>
+
+                        <p class="mt-3"><strong>Пример тела запроса:</strong></p>
+                        <pre>@_createSessionExample</pre>
+                    </div>
+                </div>
+            </section>
+
+            <section class="overview-right">
+                <div class="overview-card">
+                    <div class="overview-card-header">
+                        <h3>Seed participants</h3>
+                        <button class="btn btn-outline-secondary btn-sm" @onclick="LoadAsync">
+                            Refresh
+                        </button>
+                    </div>
+
+                    <div class="participant-list">
+                        @foreach (var participant in _seed.Participants)
+                        {
+                            <div class="participant-item">
+                                <div class="participant-title-row">
+                                    <div class="participant-name">@participant.DisplayName</div>
+                                    <div class="participant-badge">Active</div>
+                                </div>
+
+                                <div class="participant-field">
+                                    <div class="field-label">Participant ID</div>
+                                    <code>@participant.ParticipantId</code>
+                                </div>
+
+                                <div class="participant-field">
+                                    <div class="field-label">Public Key</div>
+                                    <code>@participant.PublicKeyHex</code>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </section>
+        </div>
+    }
+</div>
+
+@code
+{
+    private DevelopmentSeedApiResponse? _seed;
+    private string? _error;
+    private string _createSessionExample = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        try
+        {
+            _error = null;
+            _seed = await ApiClient.GetSeedAsync();
+
+            _createSessionExample =
+$@"{{
+  ""epochId"": ""{_seed.EpochId}"",
+  ""participantIds"": [
+    ""{_seed.Participant1Id}"",
+    ""{_seed.Participant2Id}"",
+    ""{_seed.Participant3Id}""
+  ],
+  ""message"": ""demo-protocol-session""
+}}";
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+        }
+    }
+}

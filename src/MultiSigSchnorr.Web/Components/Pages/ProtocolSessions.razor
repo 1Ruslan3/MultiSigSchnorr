@@ -1,4 +1,5 @@
 @page "/protocol-sessions"
+@using Microsoft.AspNetCore.Components
 @rendermode InteractiveServer
 @using MultiSigSchnorr.Contracts.Diagnostics
 @using MultiSigSchnorr.Contracts.ProtocolSessions
@@ -75,12 +76,12 @@
 
             <div class="panel-card">
                 <div class="panel-card-header">
-                    <h3>История созданных сессий</h3>
+                    <h3>История выбранных сессий</h3>
                 </div>
 
                 @if (_sessionHistory.Count == 0)
                 {
-                    <div class="empty-box">Пока нет созданных сессий.</div>
+                    <div class="empty-box">Пока нет загруженных сессий.</div>
                 }
                 else
                 {
@@ -103,7 +104,7 @@
                 <div class="panel-card">
                     <div class="empty-state">
                         <h3>Сессия не выбрана</h3>
-                        <p>Создай новую протокольную сессию или выбери одну из истории.</p>
+                        <p>Создай новую протокольную сессию или открой её из раздела истории.</p>
                     </div>
                 </div>
             }
@@ -293,6 +294,9 @@
 
 @code
 {
+    [SupplyParameterFromQuery(Name = "sessionId")]
+    public Guid? QuerySessionId { get; set; }
+
     private DevelopmentSeedApiResponse? _seed;
     private SessionStateApiResponse? _session;
     private string _message = "demo-protocol-session";
@@ -301,10 +305,20 @@
     private string? _verificationMessage;
     private bool? _isSignatureValid;
     private readonly List<Guid> _sessionHistory = new();
+    private Guid? _lastLoadedQuerySessionId;
 
     protected override async Task OnInitializedAsync()
     {
         await LoadSeedAsync();
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (QuerySessionId.HasValue && QuerySessionId != _lastLoadedQuerySessionId)
+        {
+            await LoadSessionAsync(QuerySessionId.Value);
+            _lastLoadedQuerySessionId = QuerySessionId;
+        }
     }
 
     private async Task LoadSeedAsync()
@@ -356,6 +370,7 @@
         {
             _error = null;
             _session = await ApiClient.GetSessionStateAsync(sessionId);
+            AddSessionToHistory(sessionId);
             _verificationMessage = null;
             _isSignatureValid = null;
         }
