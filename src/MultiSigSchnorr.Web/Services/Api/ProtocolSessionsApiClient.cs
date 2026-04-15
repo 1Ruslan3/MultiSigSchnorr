@@ -13,6 +13,17 @@ public sealed class ProtocolSessionsApiClient
         _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
     }
 
+    public Uri BaseAddress => _httpClient.BaseAddress
+        ?? throw new InvalidOperationException("API base address is not configured.");
+
+    public string BuildAbsoluteUrl(string relativePath)
+    {
+        if (string.IsNullOrWhiteSpace(relativePath))
+            throw new ArgumentException("Relative path cannot be empty.", nameof(relativePath));
+
+        return new Uri(BaseAddress, relativePath).ToString();
+    }
+
     public async Task<DevelopmentSeedApiResponse> GetSeedAsync(CancellationToken cancellationToken = default)
     {
         var result = await _httpClient.GetFromJsonAsync<DevelopmentSeedApiResponse>(

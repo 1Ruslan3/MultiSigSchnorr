@@ -1,3 +1,5 @@
+using System.Text;
+using System.Text.Json;
 using Microsoft.AspNetCore.Mvc;
 using MultiSigSchnorr.Application.UseCases.CreateProtocolSession;
 using MultiSigSchnorr.Application.UseCases.ExportProtocolSessionReport;
@@ -23,6 +25,7 @@ public sealed class ProtocolSessionsController : ControllerBase
     private readonly VerifyProtocolSessionSignatureHandler _verifyProtocolSessionSignatureHandler;
     private readonly GetProtocolSessionHistoryHandler _getProtocolSessionHistoryHandler;
     private readonly ExportProtocolSessionReportHandler _exportProtocolSessionReportHandler;
+    private readonly ProtocolSessionReportTextFormatter _protocolSessionReportTextFormatter;
 
     public ProtocolSessionsController(
         CreateProtocolSessionHandler createProtocolSessionHandler,
@@ -32,7 +35,8 @@ public sealed class ProtocolSessionsController : ControllerBase
         GetSessionStateHandler getSessionStateHandler,
         VerifyProtocolSessionSignatureHandler verifyProtocolSessionSignatureHandler,
         GetProtocolSessionHistoryHandler getProtocolSessionHistoryHandler,
-        ExportProtocolSessionReportHandler exportProtocolSessionReportHandler)
+        ExportProtocolSessionReportHandler exportProtocolSessionReportHandler,
+        ProtocolSessionReportTextFormatter protocolSessionReportTextFormatter)
     {
         _createProtocolSessionHandler = createProtocolSessionHandler;
         _publishCommitmentHandler = publishCommitmentHandler;
@@ -42,6 +46,7 @@ public sealed class ProtocolSessionsController : ControllerBase
         _verifyProtocolSessionSignatureHandler = verifyProtocolSessionSignatureHandler;
         _getProtocolSessionHistoryHandler = getProtocolSessionHistoryHandler;
         _exportProtocolSessionReportHandler = exportProtocolSessionReportHandler;
+        _protocolSessionReportTextFormatter = protocolSessionReportTextFormatter;
     }
 
     [HttpGet]
@@ -86,6 +91,66 @@ public sealed class ProtocolSessionsController : ControllerBase
                 cancellationToken);
 
             return Ok(Map(report));
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or ArgumentException)
+        {
+            return NotFound(new { error = ex.Message });
+        }
+    }
+
+    [HttpGet("{id:guid}/report.json")]
+    public async Task<IActionResult> DownloadReportJson(
+        Guid id,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var report = await _exportProtocolSessionReportHandler.HandleAsync(
+                new ExportProtocolSessionReportRequest
+                {
+                    SessionId = id
+                },
+                cancellationToken);
+
+            var apiResponse = Map(report);
+
+            var json = JsonSerializer.Serialize(
+                apiResponse,
+                new JsonSerializerOptions
+                {
+                    WriteIndented = true
+                });
+
+            var bytes = Encoding.UTF8.GetBytes(json);
+            var fileName = $"protocol-session-report-{id}.json";
+
+            return File(bytes, "application/json; charset=utf-8", fileName);
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or ArgumentException)
+        {
+            return NotFound(new { error = ex.Message });
+        }
+    }
+
+    [HttpGet("{id:guid}/report.txt")]
+    public async Task<IActionResult> DownloadReportText(
+        Guid id,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var report = await _exportProtocolSessionReportHandler.HandleAsync(
+                new ExportProtocolSessionReportRequest
+                {
+                    SessionId = id
+                },
+                cancellationToken);
+
+            var text = _protocolSessionReportTextFormatter.Format(report);
+            var bytes = Encoding.UTF8.GetBytes(text);
+            var fileName = $"protocol-session-report-{id}.txt";
+
+            return File(bytes, "text/plain; charset=utf-8", fileName);
         }
         catch (Exception ex) when (ex is InvalidOperationException or ArgumentException)
         {

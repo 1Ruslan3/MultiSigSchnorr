@@ -86,6 +86,7 @@ builder.Services.AddSingleton<IProtocolSessionRepository, InMemoryProtocolSessio
 builder.Services.AddSingleton<IPrivateKeyMaterialRepository, InMemoryPrivateKeyMaterialRepository>();
 
 builder.Services.AddSingleton<DevelopmentDataSeeder>();
+builder.Services.AddSingleton<ProtocolSessionReportTextFormatter>();
 
 builder.Services.AddScoped<CreateProtocolSessionHandler>();
 builder.Services.AddScoped<PublishCommitmentHandler>();

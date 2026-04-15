@@ -102,6 +102,26 @@ public sealed class ProtocolSessionsWorkflowTests : IClassFixture<MultiSigSchnor
         Assert.True(report.AllPartialSignaturesSubmitted);
         Assert.Equal(seed.ParticipantIds.Count, report.Participants.Count);
 
+        using var jsonFileResponse = await client.GetAsync(
+            $"/api/protocol-sessions/{createdSession.SessionId}/report.json");
+
+        Assert.Equal(HttpStatusCode.OK, jsonFileResponse.StatusCode);
+        Assert.Equal("application/json", jsonFileResponse.Content.Headers.ContentType?.MediaType);
+
+        var jsonFileContent = await jsonFileResponse.Content.ReadAsStringAsync();
+        Assert.Contains(createdSession.SessionId.ToString(), jsonFileContent, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("aggregateSignatureScalarHex", jsonFileContent, StringComparison.OrdinalIgnoreCase);
+
+        using var textFileResponse = await client.GetAsync(
+            $"/api/protocol-sessions/{createdSession.SessionId}/report.txt");
+
+        Assert.Equal(HttpStatusCode.OK, textFileResponse.StatusCode);
+        Assert.Equal("text/plain", textFileResponse.Content.Headers.ContentType?.MediaType);
+
+        var textFileContent = await textFileResponse.Content.ReadAsStringAsync();
+        Assert.Contains("MULTISIG SCHNORR PROTOCOL SESSION REPORT", textFileContent, StringComparison.Ordinal);
+        Assert.Contains(createdSession.SessionId.ToString(), textFileContent, StringComparison.OrdinalIgnoreCase);
+
         var finalState = await GetRequiredAsync<SessionStateApiResponse>(
             client,
             $"/api/protocol-sessions/{createdSession.SessionId}");

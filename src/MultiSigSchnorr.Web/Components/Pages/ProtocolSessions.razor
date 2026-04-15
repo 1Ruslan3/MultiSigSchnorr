@@ -187,6 +187,20 @@
                                 @onclick="LoadReportAsync">
                             Сформировать отчёт
                         </button>
+
+                        <a class="btn btn-outline-success"
+                           href="@GetReportJsonUrl()"
+                           target="_blank"
+                           rel="noopener noreferrer">
+                            Скачать JSON
+                        </a>
+
+                        <a class="btn btn-outline-success"
+                           href="@GetReportTextUrl()"
+                           target="_blank"
+                           rel="noopener noreferrer">
+                            Скачать TXT
+                        </a>
                     </div>
 
                     @if (!string.IsNullOrWhiteSpace(_verificationMessage))
@@ -549,6 +563,16 @@
             _error = ex.Message;
         }
     }
+
+    private string GetReportJsonUrl()
+        => _session is null
+            ? "#"
+            : ApiClient.BuildAbsoluteUrl($"api/protocol-sessions/{_session.SessionId}/report.json");
+
+    private string GetReportTextUrl()
+        => _session is null
+            ? "#"
+            : ApiClient.BuildAbsoluteUrl($"api/protocol-sessions/{_session.SessionId}/report.txt");
 
     private void AddSessionToHistory(Guid sessionId)
     {
