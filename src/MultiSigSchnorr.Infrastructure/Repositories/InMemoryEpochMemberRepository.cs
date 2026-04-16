@@ -25,10 +25,18 @@ public sealed class InMemoryEpochMemberRepository : IEpochMemberRepository
         var result = _members.Values
             .Where(x => x.EpochId == epochId)
             .OrderBy(x => x.AddedUtc)
-            .ToList()
-            .AsReadOnly();
+            .ToList();
 
         return Task.FromResult<IReadOnlyList<EpochMember>>(result);
+    }
+
+    public Task<IReadOnlyList<EpochMember>> ListAsync(CancellationToken cancellationToken = default)
+    {
+        IReadOnlyList<EpochMember> result = _members.Values
+            .OrderBy(x => x.AddedUtc)
+            .ToList();
+
+        return Task.FromResult(result);
     }
 
     public Task UpdateAsync(EpochMember member, CancellationToken cancellationToken = default)

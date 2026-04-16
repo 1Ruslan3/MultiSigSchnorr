@@ -10,5 +10,7 @@ public interface IEpochMemberRepository
         Guid epochId,
         CancellationToken cancellationToken = default);
 
+    Task<IReadOnlyList<EpochMember>> ListAsync(CancellationToken cancellationToken = default);
+
     Task UpdateAsync(EpochMember member, CancellationToken cancellationToken = default);
 }

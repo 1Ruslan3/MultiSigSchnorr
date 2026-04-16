@@ -34,10 +34,18 @@ public sealed class InMemoryParticipantRepository : IParticipantRepository
             .Distinct()
             .Where(_participants.ContainsKey)
             .Select(id => _participants[id])
-            .ToList()
-            .AsReadOnly();
+            .ToList();
 
         return Task.FromResult<IReadOnlyList<Participant>>(result);
+    }
+
+    public Task<IReadOnlyList<Participant>> ListAsync(CancellationToken cancellationToken = default)
+    {
+        IReadOnlyList<Participant> result = _participants.Values
+            .OrderBy(x => x.DisplayName, StringComparer.Ordinal)
+            .ToList();
+
+        return Task.FromResult(result);
     }
 
     public Task UpdateAsync(Participant participant, CancellationToken cancellationToken = default)

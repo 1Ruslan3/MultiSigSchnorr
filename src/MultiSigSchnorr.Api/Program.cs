@@ -2,11 +2,14 @@ using MultiSigSchnorr.Api.Development;
 using MultiSigSchnorr.Application.Repositories;
 using MultiSigSchnorr.Application.UseCases.CreateProtocolSession;
 using MultiSigSchnorr.Application.UseCases.ExportProtocolSessionReport;
+using MultiSigSchnorr.Application.UseCases.GetEpochAdministrationState;
 using MultiSigSchnorr.Application.UseCases.GetProtocolSessionHistory;
 using MultiSigSchnorr.Application.UseCases.GetSessionState;
 using MultiSigSchnorr.Application.UseCases.PublishCommitment;
 using MultiSigSchnorr.Application.UseCases.RevealNonce;
+using MultiSigSchnorr.Application.UseCases.RevokeParticipantInActiveEpoch;
 using MultiSigSchnorr.Application.UseCases.SubmitPartialSignature;
+using MultiSigSchnorr.Application.UseCases.TransitionToNextEpoch;
 using MultiSigSchnorr.Application.UseCases.VerifyProtocolSessionSignature;
 using MultiSigSchnorr.Crypto.Aggregation;
 using MultiSigSchnorr.Crypto.Commitments;
@@ -17,6 +20,7 @@ using MultiSigSchnorr.Crypto.Schnorr;
 using MultiSigSchnorr.Crypto.Security;
 using MultiSigSchnorr.Infrastructure.Repositories;
 using MultiSigSchnorr.Protocol.Epochs;
+using MultiSigSchnorr.Protocol.Revocation;
 using MultiSigSchnorr.Protocol.Sessions;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -30,6 +34,8 @@ builder.Services.AddSingleton<MessageDigestService>();
 builder.Services.AddSingleton<Sha256HashService>();
 builder.Services.AddSingleton<SystemRandomSource>();
 builder.Services.AddSingleton<EpochParticipationGuard>();
+builder.Services.AddSingleton<EpochTransitionService>();
+builder.Services.AddSingleton<RevocationPolicyService>();
 
 builder.Services.AddSingleton<PublicKeyGenerationService>(sp =>
     new PublicKeyGenerationService(sp.GetRequiredService<P256CurveContext>()));
@@ -96,6 +102,9 @@ builder.Services.AddScoped<GetSessionStateHandler>();
 builder.Services.AddScoped<VerifyProtocolSessionSignatureHandler>();
 builder.Services.AddScoped<GetProtocolSessionHistoryHandler>();
 builder.Services.AddScoped<ExportProtocolSessionReportHandler>();
+builder.Services.AddScoped<GetEpochAdministrationStateHandler>();
+builder.Services.AddScoped<RevokeParticipantInActiveEpochHandler>();
+builder.Services.AddScoped<TransitionToNextEpochHandler>();
 
 var app = builder.Build();
 
@@ -115,6 +124,7 @@ app.MapGet("/", (DevelopmentDataSeeder dataSeeder) =>
         status = "running",
         openApi = "/openapi/v1.json",
         protocolSessions = "/api/protocol-sessions",
+        admin = "/api/admin/epoch-management",
         seeded = dataSeeder.Snapshot
     });
 });

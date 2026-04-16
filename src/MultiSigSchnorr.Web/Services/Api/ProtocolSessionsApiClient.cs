@@ -1,4 +1,5 @@
 using System.Net.Http.Json;
+using MultiSigSchnorr.Contracts.Administration;
 using MultiSigSchnorr.Contracts.Diagnostics;
 using MultiSigSchnorr.Contracts.ProtocolSessions;
 
@@ -31,6 +32,40 @@ public sealed class ProtocolSessionsApiClient
             cancellationToken);
 
         return result ?? throw new InvalidOperationException("Seed data response was empty.");
+    }
+
+    public async Task<EpochAdministrationStateApiResponse> GetAdministrationStateAsync(
+        CancellationToken cancellationToken = default)
+    {
+        var result = await _httpClient.GetFromJsonAsync<EpochAdministrationStateApiResponse>(
+            "api/admin/epoch-management",
+            cancellationToken);
+
+        return result ?? throw new InvalidOperationException("Administration state response was empty.");
+    }
+
+    public async Task<EpochAdministrationStateApiResponse> RevokeParticipantAsync(
+        Guid participantId,
+        string reason,
+        CancellationToken cancellationToken = default)
+    {
+        using var response = await _httpClient.PostAsJsonAsync(
+            $"api/admin/participants/{participantId}/revoke",
+            new RevokeParticipantApiRequest { Reason = reason },
+            cancellationToken);
+
+        return await ReadAdministrationStateAsync(response, cancellationToken);
+    }
+
+    public async Task<EpochAdministrationStateApiResponse> TransitionToNextEpochAsync(
+        CancellationToken cancellationToken = default)
+    {
+        using var response = await _httpClient.PostAsync(
+            "api/admin/epochs/transition",
+            content: null,
+            cancellationToken);
+
+        return await ReadAdministrationStateAsync(response, cancellationToken);
     }
 
     public async Task<IReadOnlyList<ProtocolSessionHistoryItemApiResponse>> GetSessionHistoryAsync(
@@ -154,5 +189,21 @@ public sealed class ProtocolSessionsApiClient
         var result = await response.Content.ReadFromJsonAsync<SessionStateApiResponse>(cancellationToken);
 
         return result ?? throw new InvalidOperationException("Session state response was empty.");
+    }
+
+    private static async Task<EpochAdministrationStateApiResponse> ReadAdministrationStateAsync(
+        HttpResponseMessage response,
+        CancellationToken cancellationToken)
+    {
+        if (!response.IsSuccessStatusCode)
+        {
+            var error = await response.Content.ReadAsStringAsync(cancellationToken);
+            throw new InvalidOperationException(
+                $"API request failed with status {(int)response.StatusCode}: {error}");
+        }
+
+        var result = await response.Content.ReadFromJsonAsync<EpochAdministrationStateApiResponse>(cancellationToken);
+
+        return result ?? throw new InvalidOperationException("Administration state response was empty.");
     }
 }

@@ -24,6 +24,15 @@ public sealed class InMemoryEpochRepository : IEpochRepository
         return Task.FromResult(epoch);
     }
 
+    public Task<IReadOnlyList<Epoch>> ListAsync(CancellationToken cancellationToken = default)
+    {
+        IReadOnlyList<Epoch> result = _epochs.Values
+            .OrderByDescending(x => x.Number)
+            .ToList();
+
+        return Task.FromResult(result);
+    }
+
     public Task UpdateAsync(Epoch epoch, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(epoch);

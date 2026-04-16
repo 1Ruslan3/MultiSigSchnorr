@@ -1,0 +1,240 @@
+@page "/administration"
+@rendermode InteractiveServer
+@using MultiSigSchnorr.Contracts.Administration
+@using MultiSigSchnorr.Domain.Enums
+@inject MultiSigSchnorr.Web.Services.Api.ProtocolSessionsApiClient ApiClient
+
+<PageTitle>Administration</PageTitle>
+
+<div class="admin-page">
+    <div class="admin-header">
+        <div>
+            <h1>Administration</h1>
+            <p class="admin-subtitle">
+                Управление активной эпохой и участниками: просмотр состава, отзыв участника и переход к следующей эпохе.
+            </p>
+        </div>
+    </div>
+
+    @if (!string.IsNullOrWhiteSpace(_error))
+    {
+        <div class="alert alert-danger">@_error</div>
+    }
+
+    @if (!string.IsNullOrWhiteSpace(_info))
+    {
+        <div class="alert alert-success">@_info</div>
+    }
+
+    @if (_state is null)
+    {
+        <div class="admin-card">
+            <em>Загрузка административного состояния...</em>
+        </div>
+    }
+    else
+    {
+        <div class="admin-grid">
+            <section class="admin-left">
+                <div class="admin-card">
+                    <div class="admin-card-header">
+                        <h3>Активная эпоха</h3>
+                    </div>
+
+                    <div class="admin-meta-grid">
+                        <div class="admin-meta-box">
+                            <div class="admin-label">Epoch ID</div>
+                            <code>@_state.ActiveEpochId</code>
+                        </div>
+
+                        <div class="admin-meta-box">
+                            <div class="admin-label">Epoch Number</div>
+                            <div>@_state.ActiveEpochNumber</div>
+                        </div>
+
+                        <div class="admin-meta-box">
+                            <div class="admin-label">Status</div>
+                            <span class="status-pill status-@GetEpochStatusCss(_state.ActiveEpochStatus)">
+                                @_state.ActiveEpochStatus
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="action-row mt-3">
+                        <button class="btn btn-outline-secondary" @onclick="LoadAsync">
+                            Обновить
+                        </button>
+
+                        <button class="btn btn-primary" @onclick="TransitionEpochAsync">
+                            Перейти к следующей эпохе
+                        </button>
+                    </div>
+                </div>
+
+                <div class="admin-card">
+                    <div class="admin-card-header">
+                        <h3>Параметры отзыва</h3>
+                    </div>
+
+                    <div class="form-block">
+                        <label for="revoke-reason">Причина отзыва</label>
+                        <textarea id="revoke-reason"
+                                  class="form-control admin-textarea"
+                                  @bind="_revokeReason"></textarea>
+                    </div>
+                </div>
+
+                <div class="admin-card">
+                    <div class="admin-card-header">
+                        <h3>История эпох</h3>
+                    </div>
+
+                    <div class="epoch-history-list">
+                        @foreach (var epoch in _state.Epochs)
+                        {
+                            <div class="epoch-history-item">
+                                <div class="epoch-history-main">
+                                    <div><strong>Epoch № @epoch.EpochNumber</strong></div>
+                                    <div class="epoch-history-id">@epoch.EpochId</div>
+                                </div>
+                                <span class="status-pill status-@GetEpochStatusCss(epoch.EpochStatus)">
+                                    @epoch.EpochStatus
+                                </span>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </section>
+
+            <section class="admin-right">
+                <div class="admin-card">
+                    <div class="admin-card-header">
+                        <h3>Участники</h3>
+                    </div>
+
+                    <div class="participants-list">
+                        @foreach (var participant in _state.Participants)
+                        {
+                            <div class="participant-card">
+                                <div class="participant-header">
+                                    <div>
+                                        <div class="participant-name">@participant.DisplayName</div>
+                                        <div class="participant-id">@participant.ParticipantId</div>
+                                    </div>
+
+                                    <div class="participant-statuses">
+                                        <span class="status-pill status-@GetParticipantStatusCss(participant.ParticipantStatus)">
+                                            @participant.ParticipantStatus
+                                        </span>
+
+                                        @if (participant.IsActiveMemberOfActiveEpoch)
+                                        {
+                                            <span class="member-pill member-active">Active member</span>
+                                        }
+                                        else if (participant.IsMemberOfActiveEpoch)
+                                        {
+                                            <span class="member-pill member-inactive">Inactive member</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="member-pill member-none">Not in active epoch</span>
+                                        }
+                                    </div>
+                                </div>
+
+                                <div class="participant-fields">
+                                    <div>
+                                        <div class="admin-label">Public Key</div>
+                                        <code>@participant.PublicKeyHex</code>
+                                    </div>
+                                </div>
+
+                                <div class="action-row mt-3">
+                                    <button class="btn btn-outline-danger"
+                                            disabled="@(!participant.CanBeRevoked)"
+                                            @onclick="() => RevokeParticipantAsync(participant.ParticipantId)">
+                                        Отозвать участника
+                                    </button>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </section>
+        </div>
+    }
+</div>
+
+@code
+{
+    private EpochAdministrationStateApiResponse? _state;
+    private string? _error;
+    private string? _info;
+    private string _revokeReason = "Administrative revocation";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        try
+        {
+            _error = null;
+            _state = await ApiClient.GetAdministrationStateAsync();
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+        }
+    }
+
+    private async Task RevokeParticipantAsync(Guid participantId)
+    {
+        try
+        {
+            _error = null;
+            _info = null;
+            _state = await ApiClient.RevokeParticipantAsync(participantId, _revokeReason);
+            _info = $"Участник '{participantId}' был отозван.";
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+        }
+    }
+
+    private async Task TransitionEpochAsync()
+    {
+        try
+        {
+            _error = null;
+            _info = null;
+            _state = await ApiClient.TransitionToNextEpochAsync();
+            _info = "Переход к следующей эпохе выполнен.";
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+        }
+    }
+
+    private static string GetEpochStatusCss(EpochStatus status) => status switch
+    {
+        EpochStatus.Draft => "default",
+        EpochStatus.Active => "completed",
+        EpochStatus.Closed => "reveal",
+        EpochStatus.Archived => "failed",
+        _ => "default"
+    };
+
+    private static string GetParticipantStatusCss(ParticipantStatus status) => status switch
+    {
+        ParticipantStatus.Pending => "default",
+        ParticipantStatus.Active => "completed",
+        ParticipantStatus.Revoked => "failed",
+        ParticipantStatus.Suspended => "reveal",
+        _ => "default"
+    };
+}
