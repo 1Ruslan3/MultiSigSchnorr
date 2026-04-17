@@ -1,9 +1,9 @@
 @page "/protocol-sessions"
 @using Microsoft.AspNetCore.Components
-@rendermode InteractiveServer
 @using MultiSigSchnorr.Contracts.Diagnostics
 @using MultiSigSchnorr.Contracts.ProtocolSessions
 @using MultiSigSchnorr.Domain.Enums
+@rendermode InteractiveServer
 @inject MultiSigSchnorr.Web.Services.Api.ProtocolSessionsApiClient ApiClient
 
 <PageTitle>Protocol Sessions</PageTitle>
@@ -61,6 +61,14 @@
                     <div class="form-block">
                         <label for="message-input">Сообщение</label>
                         <textarea id="message-input" class="form-control protocol-textarea" @bind="_message"></textarea>
+                    </div>
+
+                    <div class="form-block">
+                        <label for="protection-mode">Режим защиты</label>
+                        <select id="protection-mode" class="form-select" @bind="_selectedProtectionMode">
+                            <option value="@SignatureProtectionMode.Baseline">Baseline</option>
+                            <option value="@SignatureProtectionMode.RandomizedScalarProcessing">RandomizedScalarProcessing</option>
+                        </select>
                     </div>
 
                     <div class="action-row">
@@ -127,6 +135,10 @@
                             <div class="meta-label">Epoch</div>
                             <div>@_session.EpochId</div>
                             <small>№ @_session.EpochNumber</small>
+                        </div>
+                        <div class="meta-box">
+                            <div class="meta-label">Protection Mode</div>
+                            <div>@_session.ProtectionMode</div>
                         </div>
                         <div class="meta-box">
                             <div class="meta-label">Message Digest</div>
@@ -260,6 +272,10 @@
                                 <div>@_report.SessionStatus</div>
                             </div>
                             <div class="meta-box">
+                                <div class="meta-label">Protection Mode</div>
+                                <div>@_report.ProtectionMode</div>
+                            </div>
+                            <div class="meta-box">
                                 <div class="meta-label">Participants Count</div>
                                 <div>@_report.Participants.Count</div>
                             </div>
@@ -368,6 +384,7 @@
     private SessionStateApiResponse? _session;
     private ProtocolSessionReportApiResponse? _report;
     private string _message = "demo-protocol-session";
+    private SignatureProtectionMode _selectedProtectionMode = SignatureProtectionMode.Baseline;
     private string? _error;
     private string? _info;
     private string? _verificationMessage;
@@ -417,7 +434,8 @@
                 {
                     EpochId = _seed.EpochId,
                     ParticipantIds = _seed.ParticipantIds,
-                    Message = _message
+                    Message = _message,
+                    ProtectionMode = _selectedProtectionMode
                 });
 
             AddSessionToHistory(_session.SessionId);
@@ -439,6 +457,7 @@
         {
             _error = null;
             _session = await ApiClient.GetSessionStateAsync(sessionId);
+            _selectedProtectionMode = _session.ProtectionMode;
             AddSessionToHistory(sessionId);
             _report = null;
             _verificationMessage = null;
@@ -459,6 +478,7 @@
         {
             _error = null;
             _session = await ApiClient.GetSessionStateAsync(_session.SessionId);
+            _selectedProtectionMode = _session.ProtectionMode;
         }
         catch (Exception ex)
         {

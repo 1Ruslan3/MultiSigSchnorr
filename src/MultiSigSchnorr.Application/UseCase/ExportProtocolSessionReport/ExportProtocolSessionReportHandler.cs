@@ -52,6 +52,7 @@ public sealed class ExportProtocolSessionReportHandler
             EpochId = session.Epoch.Id,
             EpochNumber = session.Epoch.Number,
             SessionStatus = session.SigningSession.Status,
+            ProtectionMode = session.ProtectionMode,
             CreatedUtc = session.SigningSession.CreatedUtc,
             CompletedUtc = session.SigningSession.CompletedUtc,
             MessageDigestHex = session.MessageDigest.ToHex(),

@@ -16,7 +16,7 @@ public sealed class ProtocolSessionsWorkflowTests : IClassFixture<MultiSigSchnor
     }
 
     [Fact]
-    public async Task Full_Workflow_Should_Create_Complete_Verify_And_Export_Report()
+    public async Task Full_Workflow_Should_Create_Complete_Verify_And_Export_Report_In_Randomized_Mode()
     {
         using var client = _factory.CreateClient();
 
@@ -31,11 +31,13 @@ public sealed class ProtocolSessionsWorkflowTests : IClassFixture<MultiSigSchnor
             {
                 EpochId = seed.EpochId,
                 ParticipantIds = seed.ParticipantIds,
-                Message = "integration-test-session"
+                Message = "integration-test-session",
+                ProtectionMode = SignatureProtectionMode.RandomizedScalarProcessing
             });
 
         Assert.NotEqual(Guid.Empty, createdSession.SessionId);
         Assert.Equal(SessionStatus.Created, createdSession.SessionStatus);
+        Assert.Equal(SignatureProtectionMode.RandomizedScalarProcessing, createdSession.ProtectionMode);
 
         foreach (var participantId in seed.ParticipantIds)
         {
@@ -79,6 +81,7 @@ public sealed class ProtocolSessionsWorkflowTests : IClassFixture<MultiSigSchnor
         Assert.True(createdSession.AllPartialSignaturesSubmitted);
         Assert.Equal(SessionStatus.Completed, createdSession.SessionStatus);
         Assert.False(string.IsNullOrWhiteSpace(createdSession.AggregateSignatureScalarHex));
+        Assert.Equal(SignatureProtectionMode.RandomizedScalarProcessing, createdSession.ProtectionMode);
 
         var verification = await PostRequiredAsync<VerifyProtocolSessionSignatureApiRequest, VerifyProtocolSessionSignatureApiResponse>(
             client,
@@ -97,6 +100,7 @@ public sealed class ProtocolSessionsWorkflowTests : IClassFixture<MultiSigSchnor
 
         Assert.Equal(createdSession.SessionId, report.SessionId);
         Assert.Equal(SessionStatus.Completed, report.SessionStatus);
+        Assert.Equal(SignatureProtectionMode.RandomizedScalarProcessing, report.ProtectionMode);
         Assert.True(report.AllCommitmentsPublished);
         Assert.True(report.AllNoncesRevealed);
         Assert.True(report.AllPartialSignaturesSubmitted);
@@ -111,6 +115,7 @@ public sealed class ProtocolSessionsWorkflowTests : IClassFixture<MultiSigSchnor
         var jsonFileContent = await jsonFileResponse.Content.ReadAsStringAsync();
         Assert.Contains(createdSession.SessionId.ToString(), jsonFileContent, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("aggregateSignatureScalarHex", jsonFileContent, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("protectionMode", jsonFileContent, StringComparison.OrdinalIgnoreCase);
 
         using var textFileResponse = await client.GetAsync(
             $"/api/protocol-sessions/{createdSession.SessionId}/report.txt");
@@ -121,12 +126,14 @@ public sealed class ProtocolSessionsWorkflowTests : IClassFixture<MultiSigSchnor
         var textFileContent = await textFileResponse.Content.ReadAsStringAsync();
         Assert.Contains("MULTISIG SCHNORR PROTOCOL SESSION REPORT", textFileContent, StringComparison.Ordinal);
         Assert.Contains(createdSession.SessionId.ToString(), textFileContent, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("Protection Mode: RandomizedScalarProcessing", textFileContent, StringComparison.Ordinal);
 
         var finalState = await GetRequiredAsync<SessionStateApiResponse>(
             client,
             $"/api/protocol-sessions/{createdSession.SessionId}");
 
         Assert.Equal(SessionStatus.Completed, finalState.SessionStatus);
+        Assert.Equal(SignatureProtectionMode.RandomizedScalarProcessing, finalState.ProtectionMode);
         Assert.True(finalState.AllCommitmentsPublished);
         Assert.True(finalState.AllNoncesRevealed);
         Assert.True(finalState.AllPartialSignaturesSubmitted);
@@ -134,7 +141,7 @@ public sealed class ProtocolSessionsWorkflowTests : IClassFixture<MultiSigSchnor
     }
 
     [Fact]
-    public async Task History_Endpoint_Should_Contain_Created_Session()
+    public async Task History_Endpoint_Should_Contain_Created_Session_With_Protection_Mode()
     {
         using var client = _factory.CreateClient();
 
@@ -149,14 +156,16 @@ public sealed class ProtocolSessionsWorkflowTests : IClassFixture<MultiSigSchnor
             {
                 EpochId = seed.EpochId,
                 ParticipantIds = seed.ParticipantIds,
-                Message = "history-test-session"
+                Message = "history-test-session",
+                ProtectionMode = SignatureProtectionMode.Baseline
             });
 
         var history = await GetRequiredAsync<List<ProtocolSessionHistoryItemApiResponse>>(
             client,
             "/api/protocol-sessions?take=50");
 
-        Assert.Contains(history, item => item.SessionId == createdSession.SessionId);
+        var entry = Assert.Single(history.Where(item => item.SessionId == createdSession.SessionId));
+        Assert.Equal(SignatureProtectionMode.Baseline, entry.ProtectionMode);
     }
 
     private static async Task<TResponse> GetRequiredAsync<TResponse>(

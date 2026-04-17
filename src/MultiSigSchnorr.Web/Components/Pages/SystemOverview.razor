@@ -1,6 +1,6 @@
 @page "/system-overview"
-@rendermode InteractiveServer
 @using MultiSigSchnorr.Contracts.Diagnostics
+@rendermode InteractiveServer
 @inject MultiSigSchnorr.Web.Services.Api.ProtocolSessionsApiClient ApiClient
 
 <PageTitle>System Overview</PageTitle>
@@ -125,7 +125,8 @@ $@"{{
     ""{_seed.Participant2Id}"",
     ""{_seed.Participant3Id}""
   ],
-  ""message"": ""demo-protocol-session""
+  ""message"": ""demo-protocol-session"",
+  ""protectionMode"": 1
 }}";
         }
         catch (Exception ex)

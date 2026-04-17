@@ -31,6 +31,7 @@ public sealed class GetProtocolSessionHistoryHandler
                 EpochId = x.Epoch.Id,
                 EpochNumber = x.Epoch.Number,
                 SessionStatus = x.SigningSession.Status,
+                ProtectionMode = x.ProtectionMode,
                 CreatedUtc = x.SigningSession.CreatedUtc,
                 CompletedUtc = x.SigningSession.CompletedUtc,
                 ParticipantsCount = x.Participants.Count,

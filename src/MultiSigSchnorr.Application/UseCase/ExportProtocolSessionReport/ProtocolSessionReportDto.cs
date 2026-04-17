@@ -9,6 +9,7 @@ public sealed class ProtocolSessionReportDto
     public int EpochNumber { get; init; }
 
     public SessionStatus SessionStatus { get; init; }
+    public SignatureProtectionMode ProtectionMode { get; init; }
 
     public DateTime CreatedUtc { get; init; }
     public DateTime? CompletedUtc { get; init; }

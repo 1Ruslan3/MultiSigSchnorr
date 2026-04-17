@@ -1,7 +1,7 @@
 @page "/protocol-session-history"
-@rendermode InteractiveServer
 @using MultiSigSchnorr.Contracts.ProtocolSessions
 @using MultiSigSchnorr.Domain.Enums
+@rendermode InteractiveServer
 @inject MultiSigSchnorr.Web.Services.Api.ProtocolSessionsApiClient ApiClient
 
 <PageTitle>Protocol Session History</PageTitle>
@@ -72,6 +72,11 @@
                         <div class="history-box">
                             <div class="history-label">Участников</div>
                             <div>@item.ParticipantsCount</div>
+                        </div>
+
+                        <div class="history-box">
+                            <div class="history-label">Protection Mode</div>
+                            <div>@item.ProtectionMode</div>
                         </div>
 
                         <div class="history-box">

@@ -20,6 +20,7 @@ public sealed class ProtocolSessionReportTextFormatter
         sb.AppendLine($"Epoch ID: {report.EpochId}");
         sb.AppendLine($"Epoch Number: {report.EpochNumber}");
         sb.AppendLine($"Session Status: {report.SessionStatus}");
+        sb.AppendLine($"Protection Mode: {report.ProtectionMode}");
         sb.AppendLine($"Created UTC: {report.CreatedUtc:yyyy-MM-dd HH:mm:ss}");
         sb.AppendLine($"Completed UTC: {(report.CompletedUtc.HasValue ? report.CompletedUtc.Value.ToString("yyyy-MM-dd HH:mm:ss") : "—")}");
         sb.AppendLine();
