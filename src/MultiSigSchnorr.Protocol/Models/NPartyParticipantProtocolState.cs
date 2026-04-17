@@ -1,5 +1,6 @@
 using MultiSigSchnorr.Crypto.Abstractions;
 using MultiSigSchnorr.Domain.Entities;
+using MultiSigSchnorr.Domain.Enums;
 using MultiSigSchnorr.Domain.ValueObjects;
 
 namespace MultiSigSchnorr.Protocol.Models;
@@ -32,14 +33,17 @@ public sealed class NPartyParticipantProtocolState
     {
         if (participantId == Guid.Empty)
             throw new ArgumentException("Participant id cannot be empty.", nameof(participantId));
-        if (string.IsNullOrWhiteSpace(displayName))
-            throw new ArgumentException("Display name cannot be empty.", nameof(displayName));
+
+        ArgumentException.ThrowIfNullOrWhiteSpace(displayName);
+        ArgumentNullException.ThrowIfNull(privateKey);
+        ArgumentNullException.ThrowIfNull(publicKey);
+        ArgumentNullException.ThrowIfNull(aggregationCoefficient);
 
         ParticipantId = participantId;
-        DisplayName = displayName.Trim();
-        PrivateKey = privateKey ?? throw new ArgumentNullException(nameof(privateKey));
-        PublicKey = publicKey ?? throw new ArgumentNullException(nameof(publicKey));
-        AggregationCoefficient = aggregationCoefficient ?? throw new ArgumentNullException(nameof(aggregationCoefficient));
+        DisplayName = displayName;
+        PrivateKey = privateKey;
+        PublicKey = publicKey;
+        AggregationCoefficient = aggregationCoefficient;
     }
 
     public NonceCommitment CreateCommitment(
@@ -50,6 +54,9 @@ public sealed class NPartyParticipantProtocolState
     {
         ArgumentNullException.ThrowIfNull(nonceGenerator);
         ArgumentNullException.ThrowIfNull(commitmentService);
+
+        if (sessionId == Guid.Empty)
+            throw new ArgumentException("Session id cannot be empty.", nameof(sessionId));
 
         if (HasCommitment)
             throw new InvalidOperationException("Commitment has already been created for this participant.");
@@ -75,6 +82,9 @@ public sealed class NPartyParticipantProtocolState
         ICommitmentService commitmentService)
     {
         ArgumentNullException.ThrowIfNull(commitmentService);
+
+        if (sessionId == Guid.Empty)
+            throw new ArgumentException("Session id cannot be empty.", nameof(sessionId));
 
         if (!HasCommitment)
             throw new InvalidOperationException("Commitment must be created before nonce reveal.");
@@ -102,10 +112,14 @@ public sealed class NPartyParticipantProtocolState
         Guid sessionId,
         DateTime submittedUtc,
         IPartialSignatureService partialSignatureService,
-        ScalarValue challenge)
+        ScalarValue challenge,
+        SignatureProtectionMode protectionMode = SignatureProtectionMode.Baseline)
     {
         ArgumentNullException.ThrowIfNull(partialSignatureService);
         ArgumentNullException.ThrowIfNull(challenge);
+
+        if (sessionId == Guid.Empty)
+            throw new ArgumentException("Session id cannot be empty.", nameof(sessionId));
 
         if (!HasReveal)
             throw new InvalidOperationException("Nonce must be revealed before partial signature creation.");
@@ -120,7 +134,8 @@ public sealed class NPartyParticipantProtocolState
             SecretNonce,
             PrivateKey,
             challenge,
-            AggregationCoefficient);
+            AggregationCoefficient,
+            protectionMode);
 
         PartialSignatureRecord = new PartialSignature(
             Guid.NewGuid(),

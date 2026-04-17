@@ -52,6 +52,7 @@ public sealed class GetSessionStateHandler
             EpochId = session.Epoch.Id,
             EpochNumber = session.Epoch.Number,
             SessionStatus = session.SigningSession.Status,
+            ProtectionMode = session.ProtectionMode,
             MessageDigestHex = session.MessageDigest.ToHex(),
             AggregatePublicKeyHex = session.AggregatePublicKey.ToHex(),
             AggregateNoncePointHex = session.AggregateNoncePoint?.ToHex(),

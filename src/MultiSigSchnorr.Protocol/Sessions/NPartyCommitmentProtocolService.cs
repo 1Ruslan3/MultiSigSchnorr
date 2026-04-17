@@ -48,7 +48,8 @@ public sealed class NPartyCommitmentProtocolService
         IReadOnlyList<EpochMember> epochMembers,
         IReadOnlyDictionary<Guid, ScalarValue> privateKeys,
         MessageDigestValue messageDigest,
-        DateTime createdUtc)
+        DateTime createdUtc,
+        SignatureProtectionMode protectionMode = SignatureProtectionMode.Baseline)
     {
         ArgumentNullException.ThrowIfNull(epoch);
         ArgumentNullException.ThrowIfNull(participants);
@@ -69,19 +70,25 @@ public sealed class NPartyCommitmentProtocolService
         foreach (var participant in distinctParticipants)
         {
             if (!privateKeys.ContainsKey(participant.Id))
+            {
                 throw new InvalidOperationException(
                     $"Private key for participant '{participant.DisplayName}' was not provided.");
+            }
         }
 
         var publicKeys = new List<PublicKeyValue>(distinctParticipants.Count);
 
         foreach (var participant in distinctParticipants)
         {
-            var derivedPublicKey = _publicKeyGenerationService.DerivePublicKey(privateKeys[participant.Id]);
+            var derivedPublicKey = _publicKeyGenerationService.DerivePublicKey(
+                privateKeys[participant.Id],
+                protectionMode);
 
             if (!derivedPublicKey.Equals(participant.PublicKey))
+            {
                 throw new InvalidOperationException(
                     $"Derived public key does not match the registered public key for participant '{participant.DisplayName}'.");
+            }
 
             publicKeys.Add(participant.PublicKey);
         }
@@ -122,7 +129,8 @@ public sealed class NPartyCommitmentProtocolService
             messageDigest,
             aggregateKeyResult.AggregatePublicKey,
             states,
-            sessionMembers);
+            sessionMembers,
+            protectionMode);
     }
 
     public NonceCommitment PublishCommitment(
@@ -214,7 +222,8 @@ public sealed class NPartyCommitmentProtocolService
             session.SessionId,
             submittedUtc,
             _partialSignatureService,
-            session.Challenge);
+            session.Challenge,
+            session.ProtectionMode);
 
         if (session.AllPartialSignaturesSubmitted)
         {

@@ -170,7 +170,8 @@ public sealed class ProtocolSessionsController : ControllerBase
                 {
                     EpochId = request.EpochId,
                     ParticipantIds = request.ParticipantIds,
-                    Message = request.Message
+                    Message = request.Message,
+                    ProtectionMode = request.ProtectionMode
                 },
                 DateTime.UtcNow,
                 cancellationToken);
@@ -338,6 +339,7 @@ public sealed class ProtocolSessionsController : ControllerBase
             EpochId = dto.EpochId,
             EpochNumber = dto.EpochNumber,
             SessionStatus = dto.SessionStatus,
+            ProtectionMode = dto.ProtectionMode,
             MessageDigestHex = dto.MessageDigestHex,
             AggregatePublicKeyHex = dto.AggregatePublicKeyHex,
             AggregateNoncePointHex = dto.AggregateNoncePointHex,

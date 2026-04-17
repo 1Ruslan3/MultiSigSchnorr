@@ -1,6 +1,5 @@
 using MultiSigSchnorr.Application.Repositories;
 using MultiSigSchnorr.Crypto.Hashing;
-using MultiSigSchnorr.Domain.Entities;
 using MultiSigSchnorr.Domain.ValueObjects;
 using MultiSigSchnorr.Protocol.Models;
 using MultiSigSchnorr.Protocol.Sessions;
@@ -45,26 +44,22 @@ public sealed class CreateProtocolSessionHandler
         if (request.EpochId == Guid.Empty)
             throw new ArgumentException("Epoch id cannot be empty.", nameof(request));
 
-        if (request.ParticipantIds is null || request.ParticipantIds.Count < 2)
+        if (request.ParticipantIds.Count < 2)
             throw new InvalidOperationException("At least two participants are required.");
 
         if (string.IsNullOrWhiteSpace(request.Message))
-            throw new InvalidOperationException("Message cannot be empty.");
+            throw new ArgumentException("Message cannot be empty.", nameof(request));
 
         var epoch = await _epochRepository.GetByIdAsync(request.EpochId, cancellationToken);
         if (epoch is null)
             throw new InvalidOperationException($"Epoch '{request.EpochId}' was not found.");
 
-        var participants = await _participantRepository.GetByIdsAsync(
-            request.ParticipantIds,
-            cancellationToken);
+        var participants = await _participantRepository.GetByIdsAsync(request.ParticipantIds, cancellationToken);
 
         if (participants.Count != request.ParticipantIds.Distinct().Count())
-            throw new InvalidOperationException("Not all requested participants were found.");
+            throw new InvalidOperationException("One or more participants were not found.");
 
-        var epochMembers = await _epochMemberRepository.GetByEpochIdAsync(
-            epoch.Id,
-            cancellationToken);
+        var epochMembers = await _epochMemberRepository.GetByEpochIdAsync(epoch.Id, cancellationToken);
 
         var privateKeys = new Dictionary<Guid, ScalarValue>();
 
@@ -75,21 +70,21 @@ public sealed class CreateProtocolSessionHandler
                 cancellationToken);
 
             if (privateKey is null)
-                throw new InvalidOperationException(
-                    $"Private key material for participant '{participantId}' was not found.");
+                throw new InvalidOperationException($"Private key material for participant '{participantId}' was not found.");
 
             privateKeys[participantId] = privateKey;
         }
 
-        var digest = _messageDigestService.DigestUtf8(request.Message);
+        var messageDigest = _messageDigestService.DigestUtf8(request.Message);
 
         var session = _protocolService.CreateSession(
             epoch,
             participants,
             epochMembers,
             privateKeys,
-            digest,
-            nowUtc);
+            messageDigest,
+            nowUtc,
+            request.ProtectionMode);
 
         await _protocolSessionRepository.AddAsync(session, cancellationToken);
 

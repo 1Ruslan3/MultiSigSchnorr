@@ -1,3 +1,4 @@
+using MultiSigSchnorr.Domain.Enums;
 using MultiSigSchnorr.Domain.ValueObjects;
 
 namespace MultiSigSchnorr.Crypto.Abstractions;
@@ -8,5 +9,6 @@ public interface IPartialSignatureService
         ScalarValue nonce,
         ScalarValue privateKey,
         ScalarValue challenge,
-        ScalarValue aggregationCoefficient);
+        ScalarValue aggregationCoefficient,
+        SignatureProtectionMode protectionMode = SignatureProtectionMode.Baseline);
 }
