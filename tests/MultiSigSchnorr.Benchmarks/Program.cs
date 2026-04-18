@@ -1,1 +1,4 @@
-﻿Console.WriteLine("Hello, World!");
+﻿using BenchmarkDotNet.Running; 
+using MultiSigSchnorr.Benchmarks; 
+  
+BenchmarkRunner.Run<SignatureProtectionBenchmarks>(); 

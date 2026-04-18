@@ -12,10 +12,10 @@
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
-    <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" />
     <PackageReference Include="xunit" />
     <PackageReference Include="xunit.runner.visualstudio" />
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" />
   </ItemGroup>
 
   <ItemGroup>
@@ -25,7 +25,6 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\MultiSigSchnorr.Api\MultiSigSchnorr.Api.csproj" />
     <ProjectReference Include="..\..\src\MultiSigSchnorr.Contracts\MultiSigSchnorr.Contracts.csproj" />
-    <ProjectReference Include="..\..\src\MultiSigSchnorr.Domain\MultiSigSchnorr.Domain.csproj" />
   </ItemGroup>
 
 </Project>
