@@ -1,7 +1,9 @@
 using MultiSigSchnorr.Api.Development;
+using MultiSigSchnorr.Application.Audit;
 using MultiSigSchnorr.Application.Repositories;
 using MultiSigSchnorr.Application.UseCases.CreateProtocolSession;
 using MultiSigSchnorr.Application.UseCases.ExportProtocolSessionReport;
+using MultiSigSchnorr.Application.UseCases.GetAuditLog;
 using MultiSigSchnorr.Application.UseCases.GetEpochAdministrationState;
 using MultiSigSchnorr.Application.UseCases.GetProtocolSessionHistory;
 using MultiSigSchnorr.Application.UseCases.GetSessionState;
@@ -90,9 +92,11 @@ builder.Services.AddSingleton<IEpochMemberRepository, InMemoryEpochMemberReposit
 builder.Services.AddSingleton<ISignatureSessionRepository, InMemorySignatureSessionRepository>();
 builder.Services.AddSingleton<IProtocolSessionRepository, InMemoryProtocolSessionRepository>();
 builder.Services.AddSingleton<IPrivateKeyMaterialRepository, InMemoryPrivateKeyMaterialRepository>();
+builder.Services.AddSingleton<IAuditLogRepository, InMemoryAuditLogRepository>();
 
 builder.Services.AddSingleton<DevelopmentDataSeeder>();
 builder.Services.AddSingleton<ProtocolSessionReportTextFormatter>();
+builder.Services.AddSingleton<AuditLogService>();
 
 builder.Services.AddScoped<CreateProtocolSessionHandler>();
 builder.Services.AddScoped<PublishCommitmentHandler>();
@@ -105,6 +109,7 @@ builder.Services.AddScoped<ExportProtocolSessionReportHandler>();
 builder.Services.AddScoped<GetEpochAdministrationStateHandler>();
 builder.Services.AddScoped<RevokeParticipantInActiveEpochHandler>();
 builder.Services.AddScoped<TransitionToNextEpochHandler>();
+builder.Services.AddScoped<GetAuditLogHandler>();
 
 var app = builder.Build();
 
@@ -125,6 +130,7 @@ app.MapGet("/", (DevelopmentDataSeeder dataSeeder) =>
         openApi = "/openapi/v1.json",
         protocolSessions = "/api/protocol-sessions",
         admin = "/api/admin/epoch-management",
+        audit = "/api/audit",
         seeded = dataSeeder.Snapshot
     });
 });

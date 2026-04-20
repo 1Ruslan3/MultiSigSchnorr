@@ -1,3 +1,4 @@
+using MultiSigSchnorr.Application.Audit;
 using MultiSigSchnorr.Application.Repositories;
 using MultiSigSchnorr.Domain.Enums;
 using MultiSigSchnorr.Protocol.Epochs;
@@ -10,17 +11,20 @@ public sealed class TransitionToNextEpochHandler
     private readonly IParticipantRepository _participantRepository;
     private readonly IEpochMemberRepository _epochMemberRepository;
     private readonly EpochTransitionService _epochTransitionService;
+    private readonly AuditLogService _auditLogService;
 
     public TransitionToNextEpochHandler(
         IEpochRepository epochRepository,
         IParticipantRepository participantRepository,
         IEpochMemberRepository epochMemberRepository,
-        EpochTransitionService epochTransitionService)
+        EpochTransitionService epochTransitionService,
+        AuditLogService auditLogService)
     {
         _epochRepository = epochRepository ?? throw new ArgumentNullException(nameof(epochRepository));
         _participantRepository = participantRepository ?? throw new ArgumentNullException(nameof(participantRepository));
         _epochMemberRepository = epochMemberRepository ?? throw new ArgumentNullException(nameof(epochMemberRepository));
         _epochTransitionService = epochTransitionService ?? throw new ArgumentNullException(nameof(epochTransitionService));
+        _auditLogService = auditLogService ?? throw new ArgumentNullException(nameof(auditLogService));
     }
 
     public async Task HandleAsync(
@@ -53,5 +57,13 @@ public sealed class TransitionToNextEpochHandler
 
         foreach (var member in result.NewEpochMembers)
             await _epochMemberRepository.AddAsync(member, cancellationToken);
+
+        await _auditLogService.LogEpochTransitionedAsync(
+            result.PreviousEpoch.Id,
+            result.NewEpoch.Id,
+            result.NewEpoch.Number,
+            result.NewEpochMembers.Count,
+            nowUtc,
+            cancellationToken);
     }
 }

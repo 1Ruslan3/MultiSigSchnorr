@@ -1,5 +1,6 @@
 using System.Net.Http.Json;
 using MultiSigSchnorr.Contracts.Administration;
+using MultiSigSchnorr.Contracts.Audit;
 using MultiSigSchnorr.Contracts.Diagnostics;
 using MultiSigSchnorr.Contracts.ProtocolSessions;
 
@@ -42,6 +43,18 @@ public sealed class ProtocolSessionsApiClient
             cancellationToken);
 
         return result ?? throw new InvalidOperationException("Administration state response was empty.");
+    }
+
+    public async Task<IReadOnlyList<AuditLogItemApiResponse>> GetAuditLogAsync(
+        int take = 100,
+        CancellationToken cancellationToken = default)
+    {
+        IReadOnlyList<AuditLogItemApiResponse>? result =
+            await _httpClient.GetFromJsonAsync<List<AuditLogItemApiResponse>>(
+                $"api/audit?take={take}",
+                cancellationToken);
+
+        return result ?? Array.Empty<AuditLogItemApiResponse>();
     }
 
     public async Task<EpochAdministrationStateApiResponse> RevokeParticipantAsync(

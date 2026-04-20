@@ -1,0 +1,118 @@
+@page "/audit-log"
+@using MultiSigSchnorr.Contracts.Audit
+@using MultiSigSchnorr.Domain.Enums
+@rendermode InteractiveServer
+@inject MultiSigSchnorr.Web.Services.Api.ProtocolSessionsApiClient ApiClient
+
+<PageTitle>Audit Log</PageTitle>
+
+<div class="audit-page">
+    <div class="audit-header">
+        <div>
+            <h1>Audit Log</h1>
+            <p class="audit-subtitle">
+                Журнал ключевых событий системы: создание протокольных сессий, отзыв участников и переход между эпохами.
+            </p>
+        </div>
+
+        <div class="audit-actions">
+            <button class="btn btn-outline-secondary" @onclick="LoadAsync">
+                Обновить
+            </button>
+        </div>
+    </div>
+
+    @if (!string.IsNullOrWhiteSpace(_error))
+    {
+        <div class="alert alert-danger">@_error</div>
+    }
+
+    @if (_items is null)
+    {
+        <div class="audit-card">
+            <em>Загрузка аудита...</em>
+        </div>
+    }
+    else if (_items.Count == 0)
+    {
+        <div class="audit-card empty">
+            Журнал аудита пока пуст.
+        </div>
+    }
+    else
+    {
+        <div class="audit-list">
+            @foreach (var item in _items)
+            {
+                <div class="audit-card">
+                    <div class="audit-card-top">
+                        <div>
+                            <div class="audit-title">@item.ActionType</div>
+                            <div class="audit-time">@item.CreatedUtc.ToString("yyyy-MM-dd HH:mm:ss") UTC</div>
+                        </div>
+
+                        <span class="audit-pill audit-@GetActionCss(item.ActionType)">
+                            @item.EntityType
+                        </span>
+                    </div>
+
+                    <div class="audit-description">
+                        @item.Description
+                    </div>
+
+                    <div class="audit-meta-grid">
+                        <div class="audit-meta-box">
+                            <div class="audit-label">Entry ID</div>
+                            <code>@item.Id</code>
+                        </div>
+
+                        <div class="audit-meta-box">
+                            <div class="audit-label">Entity ID</div>
+                            <code>@(item.EntityId?.ToString() ?? "—")</code>
+                        </div>
+                    </div>
+
+                    @if (!string.IsNullOrWhiteSpace(item.MetadataJson))
+                    {
+                        <div class="audit-json-block">
+                            <div class="audit-label">Metadata JSON</div>
+                            <pre>@item.MetadataJson</pre>
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+    }
+</div>
+
+@code
+{
+    private IReadOnlyList<AuditLogItemApiResponse>? _items;
+    private string? _error;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        try
+        {
+            _error = null;
+            _items = await ApiClient.GetAuditLogAsync(100);
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+        }
+    }
+
+    private static string GetActionCss(AuditActionType actionType) => actionType switch
+    {
+        AuditActionType.ProtocolSessionCreated => "session",
+        AuditActionType.ParticipantRevoked => "revocation",
+        AuditActionType.EpochTransitioned => "epoch",
+        _ => "default"
+    };
+}

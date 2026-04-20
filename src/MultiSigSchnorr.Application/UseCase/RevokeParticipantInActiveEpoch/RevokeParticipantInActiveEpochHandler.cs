@@ -1,3 +1,4 @@
+using MultiSigSchnorr.Application.Audit;
 using MultiSigSchnorr.Application.Repositories;
 using MultiSigSchnorr.Domain.Enums;
 using MultiSigSchnorr.Protocol.Revocation;
@@ -10,17 +11,20 @@ public sealed class RevokeParticipantInActiveEpochHandler
     private readonly IParticipantRepository _participantRepository;
     private readonly IEpochMemberRepository _epochMemberRepository;
     private readonly RevocationPolicyService _revocationPolicyService;
+    private readonly AuditLogService _auditLogService;
 
     public RevokeParticipantInActiveEpochHandler(
         IEpochRepository epochRepository,
         IParticipantRepository participantRepository,
         IEpochMemberRepository epochMemberRepository,
-        RevocationPolicyService revocationPolicyService)
+        RevocationPolicyService revocationPolicyService,
+        AuditLogService auditLogService)
     {
         _epochRepository = epochRepository ?? throw new ArgumentNullException(nameof(epochRepository));
         _participantRepository = participantRepository ?? throw new ArgumentNullException(nameof(participantRepository));
         _epochMemberRepository = epochMemberRepository ?? throw new ArgumentNullException(nameof(epochMemberRepository));
         _revocationPolicyService = revocationPolicyService ?? throw new ArgumentNullException(nameof(revocationPolicyService));
+        _auditLogService = auditLogService ?? throw new ArgumentNullException(nameof(auditLogService));
     }
 
     public async Task HandleAsync(
@@ -62,5 +66,12 @@ public sealed class RevokeParticipantInActiveEpochHandler
 
         foreach (var member in result.DeactivatedMembers)
             await _epochMemberRepository.UpdateAsync(member, cancellationToken);
+
+        await _auditLogService.LogParticipantRevokedAsync(
+            request.ParticipantId,
+            activeEpoch.Id,
+            request.Reason,
+            nowUtc,
+            cancellationToken);
     }
 }

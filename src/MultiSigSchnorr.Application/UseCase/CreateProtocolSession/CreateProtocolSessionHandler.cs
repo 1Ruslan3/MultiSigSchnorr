@@ -1,5 +1,7 @@
+using MultiSigSchnorr.Application.Audit;
 using MultiSigSchnorr.Application.Repositories;
 using MultiSigSchnorr.Crypto.Hashing;
+using MultiSigSchnorr.Domain.Entities;
 using MultiSigSchnorr.Domain.ValueObjects;
 using MultiSigSchnorr.Protocol.Models;
 using MultiSigSchnorr.Protocol.Sessions;
@@ -15,6 +17,7 @@ public sealed class CreateProtocolSessionHandler
     private readonly IProtocolSessionRepository _protocolSessionRepository;
     private readonly NPartyCommitmentProtocolService _protocolService;
     private readonly MessageDigestService _messageDigestService;
+    private readonly AuditLogService _auditLogService;
 
     public CreateProtocolSessionHandler(
         IEpochRepository epochRepository,
@@ -24,6 +27,27 @@ public sealed class CreateProtocolSessionHandler
         IProtocolSessionRepository protocolSessionRepository,
         NPartyCommitmentProtocolService protocolService,
         MessageDigestService messageDigestService)
+        : this(
+            epochRepository,
+            participantRepository,
+            epochMemberRepository,
+            privateKeyMaterialRepository,
+            protocolSessionRepository,
+            protocolService,
+            messageDigestService,
+            new AuditLogService(new NoOpAuditLogRepository()))
+    {
+    }
+
+    public CreateProtocolSessionHandler(
+        IEpochRepository epochRepository,
+        IParticipantRepository participantRepository,
+        IEpochMemberRepository epochMemberRepository,
+        IPrivateKeyMaterialRepository privateKeyMaterialRepository,
+        IProtocolSessionRepository protocolSessionRepository,
+        NPartyCommitmentProtocolService protocolService,
+        MessageDigestService messageDigestService,
+        AuditLogService auditLogService)
     {
         _epochRepository = epochRepository ?? throw new ArgumentNullException(nameof(epochRepository));
         _participantRepository = participantRepository ?? throw new ArgumentNullException(nameof(participantRepository));
@@ -32,6 +56,7 @@ public sealed class CreateProtocolSessionHandler
         _protocolSessionRepository = protocolSessionRepository ?? throw new ArgumentNullException(nameof(protocolSessionRepository));
         _protocolService = protocolService ?? throw new ArgumentNullException(nameof(protocolService));
         _messageDigestService = messageDigestService ?? throw new ArgumentNullException(nameof(messageDigestService));
+        _auditLogService = auditLogService ?? throw new ArgumentNullException(nameof(auditLogService));
     }
 
     public async Task<NPartyProtocolSession> HandleAsync(
@@ -88,6 +113,24 @@ public sealed class CreateProtocolSessionHandler
 
         await _protocolSessionRepository.AddAsync(session, cancellationToken);
 
+        await _auditLogService.LogProtocolSessionCreatedAsync(
+            session.SessionId,
+            epoch.Id,
+            epoch.Number,
+            request.ProtectionMode,
+            request.ParticipantIds.Distinct().ToList(),
+            nowUtc,
+            cancellationToken);
+
         return session;
+    }
+
+    private sealed class NoOpAuditLogRepository : IAuditLogRepository
+    {
+        public Task AddAsync(AuditLogEntry entry, CancellationToken cancellationToken = default)
+            => Task.CompletedTask;
+
+        public Task<IReadOnlyList<AuditLogEntry>> ListAsync(CancellationToken cancellationToken = default)
+            => Task.FromResult<IReadOnlyList<AuditLogEntry>>(Array.Empty<AuditLogEntry>());
     }
 }

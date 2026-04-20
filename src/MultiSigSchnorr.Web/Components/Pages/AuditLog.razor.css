@@ -1,0 +1,142 @@
+.audit-page {
+    padding: 1rem 0 2rem 0;
+}
+
+.audit-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.audit-header h1 {
+    margin-bottom: 0.4rem;
+    font-size: 2rem;
+    font-weight: 700;
+}
+
+.audit-subtitle {
+    color: #666;
+    margin: 0;
+}
+
+.audit-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.audit-card {
+    background: #fff;
+    border: 1px solid #e7e7e7;
+    border-radius: 18px;
+    padding: 1.1rem 1.1rem 1.2rem 1.1rem;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.04);
+}
+
+.audit-card.empty {
+    color: #666;
+}
+
+.audit-card-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 1rem;
+    margin-bottom: 0.9rem;
+}
+
+.audit-title {
+    font-weight: 700;
+    font-size: 1.05rem;
+}
+
+.audit-time {
+    color: #666;
+    font-size: 0.9rem;
+    margin-top: 0.25rem;
+}
+
+.audit-description {
+    margin-bottom: 1rem;
+    line-height: 1.45;
+}
+
+.audit-meta-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.9rem;
+    margin-bottom: 1rem;
+}
+
+.audit-meta-box {
+    border: 1px solid #ececec;
+    border-radius: 14px;
+    padding: 0.85rem;
+    background: #fcfcfc;
+}
+
+.audit-label {
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: #555;
+    margin-bottom: 0.45rem;
+}
+
+.audit-meta-box code,
+.audit-json-block pre {
+    display: block;
+    word-break: break-all;
+    white-space: pre-wrap;
+    font-size: 0.82rem;
+}
+
+.audit-json-block pre {
+    background: #f8fafc;
+    border: 1px solid #e5e7eb;
+    border-radius: 14px;
+    padding: 0.85rem;
+    margin: 0;
+    overflow-x: auto;
+}
+
+.audit-pill {
+    display: inline-flex;
+    align-items: center;
+    border-radius: 999px;
+    padding: 0.35rem 0.8rem;
+    font-size: 0.8rem;
+    font-weight: 700;
+}
+
+.audit-session {
+    background: #dbeafe;
+    color: #1d4ed8;
+}
+
+.audit-revocation {
+    background: #fee2e2;
+    color: #b91c1c;
+}
+
+.audit-epoch {
+    background: #dcfce7;
+    color: #166534;
+}
+
+.audit-default {
+    background: #f3f4f6;
+    color: #374151;
+}
+
+@media (max-width: 800px) {
+    .audit-header,
+    .audit-card-top {
+        flex-direction: column;
+    }
+
+    .audit-meta-grid {
+        grid-template-columns: 1fr;
+    }
+}
