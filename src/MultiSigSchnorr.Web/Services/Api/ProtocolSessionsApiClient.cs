@@ -3,6 +3,7 @@ using MultiSigSchnorr.Contracts.Administration;
 using MultiSigSchnorr.Contracts.Audit;
 using MultiSigSchnorr.Contracts.Diagnostics;
 using MultiSigSchnorr.Contracts.ProtocolSessions;
+using MultiSigSchnorr.Domain.Enums;
 
 namespace MultiSigSchnorr.Web.Services.Api;
 
@@ -47,11 +48,34 @@ public sealed class ProtocolSessionsApiClient
 
     public async Task<IReadOnlyList<AuditLogItemApiResponse>> GetAuditLogAsync(
         int take = 100,
+        string? search = null,
+        AuditActionType? actionType = null,
+        string? entityType = null,
+        Guid? entityId = null,
         CancellationToken cancellationToken = default)
     {
+        var queryParts = new List<string>
+        {
+            $"take={take}"
+        };
+
+        if (!string.IsNullOrWhiteSpace(search))
+            queryParts.Add($"search={Uri.EscapeDataString(search)}");
+
+        if (actionType.HasValue)
+            queryParts.Add($"actionType={Uri.EscapeDataString(actionType.Value.ToString())}");
+
+        if (!string.IsNullOrWhiteSpace(entityType))
+            queryParts.Add($"entityType={Uri.EscapeDataString(entityType)}");
+
+        if (entityId.HasValue)
+            queryParts.Add($"entityId={Uri.EscapeDataString(entityId.Value.ToString())}");
+
+        var path = $"api/audit?{string.Join("&", queryParts)}";
+
         IReadOnlyList<AuditLogItemApiResponse>? result =
             await _httpClient.GetFromJsonAsync<List<AuditLogItemApiResponse>>(
-                $"api/audit?take={take}",
+                path,
                 cancellationToken);
 
         return result ?? Array.Empty<AuditLogItemApiResponse>();

@@ -22,6 +22,55 @@
         </div>
     </div>
 
+    <div class="audit-filters-card">
+        <div class="audit-filters-grid">
+            <div class="filter-block">
+                <label for="audit-search">Поиск</label>
+                <input id="audit-search"
+                       class="form-control"
+                       @bind="_searchTerm"
+                       placeholder="Текст, GUID, JSON, описание..." />
+            </div>
+
+            <div class="filter-block">
+                <label for="audit-action-type">Тип действия</label>
+                <select id="audit-action-type" class="form-select" @bind="_selectedActionTypeText">
+                    <option value="">Все</option>
+                    @foreach (var actionType in Enum.GetValues<AuditActionType>())
+                    {
+                        <option value="@actionType.ToString()">@actionType</option>
+                    }
+                </select>
+            </div>
+
+            <div class="filter-block">
+                <label for="audit-entity-type">Тип сущности</label>
+                <input id="audit-entity-type"
+                       class="form-control"
+                       @bind="_entityType"
+                       placeholder="ProtocolSession / Participant / Epoch" />
+            </div>
+
+            <div class="filter-block">
+                <label for="audit-entity-id">Entity ID</label>
+                <input id="audit-entity-id"
+                       class="form-control"
+                       @bind="_entityIdText"
+                       placeholder="GUID сущности" />
+            </div>
+        </div>
+
+        <div class="audit-filter-actions">
+            <button class="btn btn-primary" @onclick="ApplyFiltersAsync">
+                Применить фильтры
+            </button>
+
+            <button class="btn btn-outline-secondary" @onclick="ResetFiltersAsync">
+                Сбросить
+            </button>
+        </div>
+    </div>
+
     @if (!string.IsNullOrWhiteSpace(_error))
     {
         <div class="alert alert-danger">@_error</div>
@@ -36,11 +85,15 @@
     else if (_items.Count == 0)
     {
         <div class="audit-card empty">
-            Журнал аудита пока пуст.
+            По текущим фильтрам журнал аудита пуст.
         </div>
     }
     else
     {
+        <div class="audit-summary">
+            Найдено записей: <strong>@_items.Count</strong>
+        </div>
+
         <div class="audit-list">
             @foreach (var item in _items)
             {
@@ -90,6 +143,11 @@
     private IReadOnlyList<AuditLogItemApiResponse>? _items;
     private string? _error;
 
+    private string _searchTerm = string.Empty;
+    private string _selectedActionTypeText = string.Empty;
+    private string _entityType = string.Empty;
+    private string _entityIdText = string.Empty;
+
     protected override async Task OnInitializedAsync()
     {
         await LoadAsync();
@@ -100,12 +158,54 @@
         try
         {
             _error = null;
-            _items = await ApiClient.GetAuditLogAsync(100);
+
+            _items = await ApiClient.GetAuditLogAsync(
+                100,
+                string.IsNullOrWhiteSpace(_searchTerm) ? null : _searchTerm,
+                ParseActionType(),
+                string.IsNullOrWhiteSpace(_entityType) ? null : _entityType,
+                ParseEntityId());
         }
         catch (Exception ex)
         {
             _error = ex.Message;
+            _items = Array.Empty<AuditLogItemApiResponse>();
         }
+    }
+
+    private async Task ApplyFiltersAsync()
+    {
+        await LoadAsync();
+    }
+
+    private async Task ResetFiltersAsync()
+    {
+        _searchTerm = string.Empty;
+        _selectedActionTypeText = string.Empty;
+        _entityType = string.Empty;
+        _entityIdText = string.Empty;
+
+        await LoadAsync();
+    }
+
+    private AuditActionType? ParseActionType()
+    {
+        if (string.IsNullOrWhiteSpace(_selectedActionTypeText))
+            return null;
+
+        return Enum.TryParse<AuditActionType>(_selectedActionTypeText, out var value)
+            ? value
+            : null;
+    }
+
+    private Guid? ParseEntityId()
+    {
+        if (string.IsNullOrWhiteSpace(_entityIdText))
+            return null;
+
+        return Guid.TryParse(_entityIdText, out var value)
+            ? value
+            : null;
     }
 
     private static string GetActionCss(AuditActionType actionType) => actionType switch

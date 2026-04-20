@@ -22,7 +22,39 @@ public sealed class GetAuditLogHandler
 
         var entries = await _auditLogRepository.ListAsync(cancellationToken);
 
-        return entries
+        var query = entries.AsEnumerable();
+
+        if (request.ActionType.HasValue)
+        {
+            query = query.Where(x => x.ActionType == request.ActionType.Value);
+        }
+
+        if (!string.IsNullOrWhiteSpace(request.EntityType))
+        {
+            query = query.Where(x =>
+                string.Equals(
+                    x.EntityType,
+                    request.EntityType.Trim(),
+                    StringComparison.OrdinalIgnoreCase));
+        }
+
+        if (request.EntityId.HasValue)
+        {
+            query = query.Where(x => x.EntityId == request.EntityId.Value);
+        }
+
+        if (!string.IsNullOrWhiteSpace(request.SearchTerm))
+        {
+            var search = request.SearchTerm.Trim();
+
+            query = query.Where(x =>
+                ContainsIgnoreCase(x.Description, search) ||
+                ContainsIgnoreCase(x.MetadataJson, search) ||
+                ContainsIgnoreCase(x.EntityType, search) ||
+                ContainsIgnoreCase(x.EntityId?.ToString(), search));
+        }
+
+        return query
             .OrderByDescending(x => x.CreatedUtc)
             .Take(take)
             .Select(x => new AuditLogItemDto
@@ -36,5 +68,13 @@ public sealed class GetAuditLogHandler
                 CreatedUtc = x.CreatedUtc
             })
             .ToList();
+    }
+
+    private static bool ContainsIgnoreCase(string? source, string value)
+    {
+        if (string.IsNullOrWhiteSpace(source))
+            return false;
+
+        return source.Contains(value, StringComparison.OrdinalIgnoreCase);
     }
 }
