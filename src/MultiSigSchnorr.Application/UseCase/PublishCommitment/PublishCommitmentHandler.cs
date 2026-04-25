@@ -1,21 +1,25 @@
 using MultiSigSchnorr.Application.Repositories;
 using MultiSigSchnorr.Domain.Entities;
+using MultiSigSchnorr.Protocol.Sessions;
 
 namespace MultiSigSchnorr.Application.UseCases.PublishCommitment;
 
 public sealed class PublishCommitmentHandler
 {
     private readonly IProtocolSessionRepository _protocolSessionRepository;
-    private readonly MultiSigSchnorr.Protocol.Sessions.NPartyCommitmentProtocolService _protocolService;
+    private readonly NPartyCommitmentProtocolService _protocolService;
+    private readonly IProtocolSessionProjectionRepository? _projectionRepository;
 
     public PublishCommitmentHandler(
         IProtocolSessionRepository protocolSessionRepository,
-        MultiSigSchnorr.Protocol.Sessions.NPartyCommitmentProtocolService protocolService)
+        NPartyCommitmentProtocolService protocolService,
+        IProtocolSessionProjectionRepository? projectionRepository = null)
     {
         _protocolSessionRepository = protocolSessionRepository
             ?? throw new ArgumentNullException(nameof(protocolSessionRepository));
         _protocolService = protocolService
             ?? throw new ArgumentNullException(nameof(protocolService));
+        _projectionRepository = projectionRepository;
     }
 
     public async Task<NonceCommitment> HandleAsync(
@@ -45,6 +49,9 @@ public sealed class PublishCommitmentHandler
             nowUtc);
 
         await _protocolSessionRepository.UpdateAsync(session, cancellationToken);
+
+        if (_projectionRepository is not null)
+            await _projectionRepository.UpsertAsync(session, cancellationToken);
 
         return commitment;
     }

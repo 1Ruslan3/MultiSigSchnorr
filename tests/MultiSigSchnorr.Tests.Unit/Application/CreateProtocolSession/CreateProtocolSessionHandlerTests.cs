@@ -1,3 +1,4 @@
+using MultiSigSchnorr.Application.Audit;
 using MultiSigSchnorr.Application.UseCases.CreateProtocolSession;
 using MultiSigSchnorr.Crypto.Aggregation;
 using MultiSigSchnorr.Crypto.Commitments;
@@ -10,7 +11,6 @@ using MultiSigSchnorr.Domain.Entities;
 using MultiSigSchnorr.Domain.Enums;
 using MultiSigSchnorr.Infrastructure.Repositories;
 using MultiSigSchnorr.Protocol.Epochs;
-using MultiSigSchnorr.Protocol.Models;
 using MultiSigSchnorr.Protocol.Sessions;
 using Xunit;
 
@@ -22,20 +22,17 @@ public sealed class CreateProtocolSessionHandlerTests
     public async Task HandleAsync_Should_Create_And_Save_ProtocolSession()
     {
         var context = await BuildContextAsync();
-
-        var handler = new CreateProtocolSessionHandler(
-            context.EpochRepository,
-            context.ParticipantRepository,
-            context.EpochMemberRepository,
-            context.PrivateKeyMaterialRepository,
-            context.ProtocolSessionRepository,
-            context.ProtocolService,
-            context.MessageDigestService);
+        var handler = CreateHandler(context);
 
         var request = new CreateProtocolSessionRequest
         {
             EpochId = context.Epoch.Id,
-            ParticipantIds = new[] { context.Participant1.Id, context.Participant2.Id, context.Participant3.Id },
+            ParticipantIds = new[]
+            {
+                context.Participant1.Id,
+                context.Participant2.Id,
+                context.Participant3.Id
+            },
             Message = "create-protocol-session"
         };
 
@@ -52,20 +49,17 @@ public sealed class CreateProtocolSessionHandlerTests
     public async Task HandleAsync_Should_Throw_When_PrivateKey_Material_Is_Missing()
     {
         var context = await BuildContextAsync(includeThirdPrivateKey: false);
-
-        var handler = new CreateProtocolSessionHandler(
-            context.EpochRepository,
-            context.ParticipantRepository,
-            context.EpochMemberRepository,
-            context.PrivateKeyMaterialRepository,
-            context.ProtocolSessionRepository,
-            context.ProtocolService,
-            context.MessageDigestService);
+        var handler = CreateHandler(context);
 
         var request = new CreateProtocolSessionRequest
         {
             EpochId = context.Epoch.Id,
-            ParticipantIds = new[] { context.Participant1.Id, context.Participant2.Id, context.Participant3.Id },
+            ParticipantIds = new[]
+            {
+                context.Participant1.Id,
+                context.Participant2.Id,
+                context.Participant3.Id
+            },
             Message = "missing-private-key"
         };
 
@@ -77,20 +71,16 @@ public sealed class CreateProtocolSessionHandlerTests
     public async Task HandleAsync_Should_Throw_When_Epoch_Is_Not_Found()
     {
         var context = await BuildContextAsync();
-
-        var handler = new CreateProtocolSessionHandler(
-            context.EpochRepository,
-            context.ParticipantRepository,
-            context.EpochMemberRepository,
-            context.PrivateKeyMaterialRepository,
-            context.ProtocolSessionRepository,
-            context.ProtocolService,
-            context.MessageDigestService);
+        var handler = CreateHandler(context);
 
         var request = new CreateProtocolSessionRequest
         {
             EpochId = Guid.NewGuid(),
-            ParticipantIds = new[] { context.Participant1.Id, context.Participant2.Id },
+            ParticipantIds = new[]
+            {
+                context.Participant1.Id,
+                context.Participant2.Id
+            },
             Message = "unknown-epoch"
         };
 
@@ -98,7 +88,24 @@ public sealed class CreateProtocolSessionHandlerTests
             handler.HandleAsync(request, DateTime.UtcNow));
     }
 
-    private static async Task<TestContext> BuildContextAsync(bool includeThirdPrivateKey = true)
+    private static CreateProtocolSessionHandler CreateHandler(TestContext context)
+    {
+        var auditLogService = new AuditLogService(
+            new InMemoryAuditLogRepository());
+
+        return new CreateProtocolSessionHandler(
+            context.EpochRepository,
+            context.ParticipantRepository,
+            context.EpochMemberRepository,
+            context.PrivateKeyMaterialRepository,
+            context.ProtocolSessionRepository,
+            context.ProtocolService,
+            context.MessageDigestService,
+            auditLogService);
+    }
+
+    private static async Task<TestContext> BuildContextAsync(
+        bool includeThirdPrivateKey = true)
     {
         var epochRepository = new InMemoryEpochRepository();
         var participantRepository = new InMemoryParticipantRepository();
@@ -172,11 +179,25 @@ public sealed class CreateProtocolSessionHandlerTests
         await epochRepository.AddAsync(epoch);
 
         await epochMemberRepository.AddAsync(
-            new EpochMember(Guid.NewGuid(), epoch.Id, participant1.Id, DateTime.UtcNow));
+            new EpochMember(
+                Guid.NewGuid(),
+                epoch.Id,
+                participant1.Id,
+                DateTime.UtcNow));
+
         await epochMemberRepository.AddAsync(
-            new EpochMember(Guid.NewGuid(), epoch.Id, participant2.Id, DateTime.UtcNow));
+            new EpochMember(
+                Guid.NewGuid(),
+                epoch.Id,
+                participant2.Id,
+                DateTime.UtcNow));
+
         await epochMemberRepository.AddAsync(
-            new EpochMember(Guid.NewGuid(), epoch.Id, participant3.Id, DateTime.UtcNow));
+            new EpochMember(
+                Guid.NewGuid(),
+                epoch.Id,
+                participant3.Id,
+                DateTime.UtcNow));
 
         return new TestContext(
             epochRepository,
@@ -198,6 +219,7 @@ public sealed class CreateProtocolSessionHandlerTests
         out P256CurveContext curve)
     {
         curve = new P256CurveContext();
+
         var randomSource = new SystemRandomSource();
         var nonceGenerator = new SecureNonceGenerator(curve, randomSource);
 
@@ -207,9 +229,12 @@ public sealed class CreateProtocolSessionHandlerTests
         var commitmentService = new CommitmentService(sha256);
         var partialSignatureService = new PartialSignatureService(curve);
         var aggregateVerifier = new AggregateSignatureVerifier(curve, challengeService);
+
         publicKeyGenerationService = new PublicKeyGenerationService(curve);
+
         var aggregateKeyService = new AggregateKeyService(curve, hashToScalar);
         var epochGuard = new EpochParticipationGuard();
+
         messageDigestService = new MessageDigestService();
 
         return new NPartyCommitmentProtocolService(

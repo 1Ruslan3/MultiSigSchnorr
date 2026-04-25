@@ -106,6 +106,7 @@ builder.Services.AddScoped<IEpochRepository, PostgresEpochRepository>();
 builder.Services.AddScoped<IParticipantRepository, PostgresParticipantRepository>();
 builder.Services.AddScoped<IEpochMemberRepository, PostgresEpochMemberRepository>();
 builder.Services.AddScoped<IAuditLogRepository, PostgresAuditLogRepository>();
+builder.Services.AddScoped<IProtocolSessionProjectionRepository, PostgresProtocolSessionProjectionRepository>();
 
 builder.Services.AddSingleton<ISignatureSessionRepository, InMemorySignatureSessionRepository>();
 builder.Services.AddSingleton<IProtocolSessionRepository, InMemoryProtocolSessionRepository>();
