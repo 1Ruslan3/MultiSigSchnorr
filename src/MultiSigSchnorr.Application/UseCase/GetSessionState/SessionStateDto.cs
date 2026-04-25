@@ -7,8 +7,15 @@ public sealed class SessionStateDto
     public Guid SessionId { get; init; }
     public Guid EpochId { get; init; }
     public int EpochNumber { get; init; }
+
     public SessionStatus SessionStatus { get; init; }
     public SignatureProtectionMode ProtectionMode { get; init; }
+
+    /// <summary>
+    /// true — сессия найдена в runtime-хранилище и может продолжать выполнение;
+    /// false — сессия восстановлена из PostgreSQL-проекции и доступна только для просмотра.
+    /// </summary>
+    public bool IsRuntimeStateAvailable { get; init; }
 
     public string MessageDigestHex { get; init; } = string.Empty;
     public string AggregatePublicKeyHex { get; init; } = string.Empty;

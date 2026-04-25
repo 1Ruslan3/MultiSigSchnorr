@@ -341,6 +341,7 @@ public sealed class ProtocolSessionsController : ControllerBase
             EpochNumber = dto.EpochNumber,
             SessionStatus = dto.SessionStatus,
             ProtectionMode = dto.ProtectionMode,
+            IsRuntimeStateAvailable = dto.IsRuntimeStateAvailable,
             MessageDigestHex = dto.MessageDigestHex,
             AggregatePublicKeyHex = dto.AggregatePublicKeyHex,
             AggregateNoncePointHex = dto.AggregateNoncePointHex,

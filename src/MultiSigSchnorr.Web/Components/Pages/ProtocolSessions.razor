@@ -149,6 +149,13 @@
                             <code>@_session.AggregatePublicKeyHex</code>
                         </div>
                     </div>
+                    @if (!_session.IsRuntimeStateAvailable)
+                    {
+                        <div class="alert alert-warning mt-3">
+                            Эта сессия восстановлена из PostgreSQL-проекции и доступна только для просмотра, отчёта и экспорта.
+                            Продолжение выполнения невозможно, потому что runtime-состояние, secret nonce и приватные материалы не сохраняются в базе данных.
+                        </div>
+                    }
                 </div>
 
                 <div class="panel-card">
@@ -189,11 +196,10 @@
                         </button>
 
                         <button class="btn btn-outline-dark"
-                                disabled="@(_session.SessionStatus != SessionStatus.Completed)"
+                                disabled="@(_session.SessionStatus != SessionStatus.Completed || !_session.IsRuntimeStateAvailable)"
                                 @onclick="VerifyAsync">
                             Проверить итоговую подпись
                         </button>
-
                         <button class="btn btn-outline-primary"
                                 disabled="@(_session is null)"
                                 @onclick="LoadReportAsync">
@@ -605,18 +611,22 @@
     private bool IsCurrentSession(Guid sessionId)
         => _session?.SessionId == sessionId;
 
-    private static bool CanPublishCommitment(SessionParticipantStateApiResponse participant)
-        => !participant.HasCommitment;
+    private bool CanPublishCommitment(SessionParticipantStateApiResponse participant)
+    => _session is not null
+       && _session.IsRuntimeStateAvailable
+       && !participant.HasCommitment;
 
     private bool CanRevealNonce(SessionParticipantStateApiResponse participant)
         => _session is not null
-           && _session.AllCommitmentsPublished
-           && !participant.HasReveal;
+        && _session.IsRuntimeStateAvailable
+        && _session.AllCommitmentsPublished
+        && !participant.HasReveal;
 
     private bool CanSubmitPartialSignature(SessionParticipantStateApiResponse participant)
         => _session is not null
-           && _session.AllNoncesRevealed
-           && !participant.HasPartialSignature;
+        && _session.IsRuntimeStateAvailable
+        && _session.AllNoncesRevealed
+        && !participant.HasPartialSignature;
 
     private static string GetStatusCss(SessionStatus status) => status switch
     {

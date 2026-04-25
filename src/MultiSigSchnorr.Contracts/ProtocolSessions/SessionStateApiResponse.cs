@@ -7,8 +7,11 @@ public sealed class SessionStateApiResponse
     public Guid SessionId { get; init; }
     public Guid EpochId { get; init; }
     public int EpochNumber { get; init; }
+
     public SessionStatus SessionStatus { get; init; }
     public SignatureProtectionMode ProtectionMode { get; init; }
+
+    public bool IsRuntimeStateAvailable { get; init; }
 
     public string MessageDigestHex { get; init; } = string.Empty;
     public string AggregatePublicKeyHex { get; init; } = string.Empty;
