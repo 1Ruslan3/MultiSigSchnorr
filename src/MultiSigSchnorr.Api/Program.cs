@@ -1,3 +1,4 @@
+using Microsoft.EntityFrameworkCore;
 using MultiSigSchnorr.Api.Development;
 using MultiSigSchnorr.Application.Audit;
 using MultiSigSchnorr.Application.Repositories;
@@ -20,6 +21,8 @@ using MultiSigSchnorr.Crypto.Hashing;
 using MultiSigSchnorr.Crypto.Nonces;
 using MultiSigSchnorr.Crypto.Schnorr;
 using MultiSigSchnorr.Crypto.Security;
+using MultiSigSchnorr.Infrastructure.Persistence;
+using MultiSigSchnorr.Infrastructure.Persistence.Repositories;
 using MultiSigSchnorr.Infrastructure.Repositories;
 using MultiSigSchnorr.Protocol.Epochs;
 using MultiSigSchnorr.Protocol.Revocation;
@@ -30,6 +33,19 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddOpenApi();
+
+var connectionString = builder.Configuration.GetConnectionString("MultiSigSchnorrDb");
+
+if (string.IsNullOrWhiteSpace(connectionString))
+{
+    throw new InvalidOperationException(
+        "Connection string 'MultiSigSchnorrDb' is not configured.");
+}
+
+builder.Services.AddDbContext<MultiSigSchnorrDbContext>(options =>
+{
+    options.UseNpgsql(connectionString);
+});
 
 builder.Services.AddSingleton<P256CurveContext>();
 builder.Services.AddSingleton<MessageDigestService>();
@@ -92,11 +108,12 @@ builder.Services.AddSingleton<IEpochMemberRepository, InMemoryEpochMemberReposit
 builder.Services.AddSingleton<ISignatureSessionRepository, InMemorySignatureSessionRepository>();
 builder.Services.AddSingleton<IProtocolSessionRepository, InMemoryProtocolSessionRepository>();
 builder.Services.AddSingleton<IPrivateKeyMaterialRepository, InMemoryPrivateKeyMaterialRepository>();
-builder.Services.AddSingleton<IAuditLogRepository, InMemoryAuditLogRepository>();
+
+builder.Services.AddScoped<IAuditLogRepository, PostgresAuditLogRepository>();
 
 builder.Services.AddSingleton<DevelopmentDataSeeder>();
 builder.Services.AddSingleton<ProtocolSessionReportTextFormatter>();
-builder.Services.AddSingleton<AuditLogService>();
+builder.Services.AddScoped<AuditLogService>();
 
 builder.Services.AddScoped<CreateProtocolSessionHandler>();
 builder.Services.AddScoped<PublishCommitmentHandler>();
@@ -118,6 +135,12 @@ if (app.Environment.IsDevelopment())
     app.MapOpenApi();
 }
 
+using (var scope = app.Services.CreateScope())
+{
+    var dbContext = scope.ServiceProvider.GetRequiredService<MultiSigSchnorrDbContext>();
+    await dbContext.Database.MigrateAsync();
+}
+
 var seeder = app.Services.GetRequiredService<DevelopmentDataSeeder>();
 await seeder.SeedAsync();
 
@@ -131,6 +154,7 @@ app.MapGet("/", (DevelopmentDataSeeder dataSeeder) =>
         protocolSessions = "/api/protocol-sessions",
         admin = "/api/admin/epoch-management",
         audit = "/api/audit",
+        storage = "PostgreSQL for AuditLog, in-memory for protocol state",
         seeded = dataSeeder.Snapshot
     });
 });

@@ -9,14 +9,17 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" />
+
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\MultiSigSchnorr.Application\MultiSigSchnorr.Application.csproj" />
     <ProjectReference Include="..\MultiSigSchnorr.Infrastructure\MultiSigSchnorr.Infrastructure.csproj" />
     <ProjectReference Include="..\MultiSigSchnorr.Contracts\MultiSigSchnorr.Contracts.csproj" />
-    <ProjectReference Include="..\MultiSigSchnorr.Protocol\MultiSigSchnorr.Protocol.csproj" />
-    <ProjectReference Include="..\MultiSigSchnorr.Crypto\MultiSigSchnorr.Crypto.csproj" />
   </ItemGroup>
 
 </Project>
