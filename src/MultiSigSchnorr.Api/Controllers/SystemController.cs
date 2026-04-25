@@ -25,6 +25,8 @@ public sealed class SystemController : ControllerBase
     [HttpGet("seed")]
     public async Task<ActionResult<DevelopmentSeedApiResponse>> GetSeed(CancellationToken cancellationToken)
     {
+        await _developmentDataSeeder.SeedAsync(cancellationToken);
+
         var snapshot = _developmentDataSeeder.Snapshot;
 
         if (snapshot is null)

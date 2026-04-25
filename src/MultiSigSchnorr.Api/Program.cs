@@ -102,16 +102,16 @@ builder.Services.AddSingleton<NPartyCommitmentProtocolService>(sp =>
         sp.GetRequiredService<P256CurveContext>(),
         sp.GetRequiredService<EpochParticipationGuard>()));
 
-builder.Services.AddSingleton<IEpochRepository, InMemoryEpochRepository>();
-builder.Services.AddSingleton<IParticipantRepository, InMemoryParticipantRepository>();
-builder.Services.AddSingleton<IEpochMemberRepository, InMemoryEpochMemberRepository>();
+builder.Services.AddScoped<IEpochRepository, PostgresEpochRepository>();
+builder.Services.AddScoped<IParticipantRepository, PostgresParticipantRepository>();
+builder.Services.AddScoped<IEpochMemberRepository, PostgresEpochMemberRepository>();
+builder.Services.AddScoped<IAuditLogRepository, PostgresAuditLogRepository>();
+
 builder.Services.AddSingleton<ISignatureSessionRepository, InMemorySignatureSessionRepository>();
 builder.Services.AddSingleton<IProtocolSessionRepository, InMemoryProtocolSessionRepository>();
 builder.Services.AddSingleton<IPrivateKeyMaterialRepository, InMemoryPrivateKeyMaterialRepository>();
 
-builder.Services.AddScoped<IAuditLogRepository, PostgresAuditLogRepository>();
-
-builder.Services.AddSingleton<DevelopmentDataSeeder>();
+builder.Services.AddScoped<DevelopmentDataSeeder>();
 builder.Services.AddSingleton<ProtocolSessionReportTextFormatter>();
 builder.Services.AddScoped<AuditLogService>();
 
@@ -139,13 +139,15 @@ using (var scope = app.Services.CreateScope())
 {
     var dbContext = scope.ServiceProvider.GetRequiredService<MultiSigSchnorrDbContext>();
     await dbContext.Database.MigrateAsync();
+
+    var seeder = scope.ServiceProvider.GetRequiredService<DevelopmentDataSeeder>();
+    await seeder.SeedAsync();
 }
 
-var seeder = app.Services.GetRequiredService<DevelopmentDataSeeder>();
-await seeder.SeedAsync();
-
-app.MapGet("/", (DevelopmentDataSeeder dataSeeder) =>
+app.MapGet("/", async (DevelopmentDataSeeder dataSeeder, CancellationToken cancellationToken) =>
 {
+    await dataSeeder.SeedAsync(cancellationToken);
+
     return Results.Ok(new
     {
         service = "MultiSigSchnorr.Api",
@@ -154,7 +156,7 @@ app.MapGet("/", (DevelopmentDataSeeder dataSeeder) =>
         protocolSessions = "/api/protocol-sessions",
         admin = "/api/admin/epoch-management",
         audit = "/api/audit",
-        storage = "PostgreSQL for AuditLog, in-memory for protocol state",
+        storage = "PostgreSQL for AuditLog, Epoch, Participant and EpochMember; in-memory for protocol sessions and private key material",
         seeded = dataSeeder.Snapshot
     });
 });

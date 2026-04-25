@@ -32,90 +32,123 @@ public sealed class DevelopmentDataSeeder
 
     public async Task SeedAsync(CancellationToken cancellationToken = default)
     {
-        if (Snapshot is not null)
-            return;
-
-        var epochId = Guid.Parse("11111111-1111-1111-1111-111111111111");
         var participant1Id = Guid.Parse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa1");
         var participant2Id = Guid.Parse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa2");
         var participant3Id = Guid.Parse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa3");
-
-        var existingEpoch = await _epochRepository.GetByIdAsync(epochId, cancellationToken);
-        if (existingEpoch is not null)
-        {
-            Snapshot = new DevelopmentSeedSnapshot
-            {
-                EpochId = epochId,
-                EpochNumber = existingEpoch.Number,
-                Participant1Id = participant1Id,
-                Participant2Id = participant2Id,
-                Participant3Id = participant3Id
-            };
-
-            return;
-        }
 
         var privateKey1 = ScalarValue.FromHex("101112131415161718191A1B1C1D1E1F202122232425262728292A2B2C2D2E2F");
         var privateKey2 = ScalarValue.FromHex("3132333435363738393A3B3C3D3E3F404142434445464748494A4B4C4D4E4F50");
         var privateKey3 = ScalarValue.FromHex("5152535455565758595A5B5C5D5E5F606162636465666768696A6B6C6D6E6F70");
 
-        var participant1 = new Participant(
+        await _privateKeyMaterialRepository.SetAsync(participant1Id, privateKey1, cancellationToken);
+        await _privateKeyMaterialRepository.SetAsync(participant2Id, privateKey2, cancellationToken);
+        await _privateKeyMaterialRepository.SetAsync(participant3Id, privateKey3, cancellationToken);
+
+        var participant1 = await EnsureParticipantAsync(
             participant1Id,
             "Participant-1",
-            _publicKeyGenerationService.DerivePublicKey(privateKey1),
-            ParticipantStatus.Active,
-            DateTime.UtcNow);
+            privateKey1,
+            cancellationToken);
 
-        var participant2 = new Participant(
+        var participant2 = await EnsureParticipantAsync(
             participant2Id,
             "Participant-2",
-            _publicKeyGenerationService.DerivePublicKey(privateKey2),
-            ParticipantStatus.Active,
-            DateTime.UtcNow);
+            privateKey2,
+            cancellationToken);
 
-        var participant3 = new Participant(
+        var participant3 = await EnsureParticipantAsync(
             participant3Id,
             "Participant-3",
-            _publicKeyGenerationService.DerivePublicKey(privateKey3),
-            ParticipantStatus.Active,
-            DateTime.UtcNow);
-
-        var epoch = new Epoch(
-            epochId,
-            1,
-            DateTime.UtcNow);
-
-        epoch.Activate(DateTime.UtcNow);
-
-        await _participantRepository.AddAsync(participant1, cancellationToken);
-        await _participantRepository.AddAsync(participant2, cancellationToken);
-        await _participantRepository.AddAsync(participant3, cancellationToken);
-
-        await _privateKeyMaterialRepository.SetAsync(participant1.Id, privateKey1, cancellationToken);
-        await _privateKeyMaterialRepository.SetAsync(participant2.Id, privateKey2, cancellationToken);
-        await _privateKeyMaterialRepository.SetAsync(participant3.Id, privateKey3, cancellationToken);
-
-        await _epochRepository.AddAsync(epoch, cancellationToken);
-
-        await _epochMemberRepository.AddAsync(
-            new EpochMember(Guid.NewGuid(), epoch.Id, participant1.Id, DateTime.UtcNow),
+            privateKey3,
             cancellationToken);
 
-        await _epochMemberRepository.AddAsync(
-            new EpochMember(Guid.NewGuid(), epoch.Id, participant2.Id, DateTime.UtcNow),
-            cancellationToken);
+        var activeEpoch = await EnsureActiveEpochAsync(cancellationToken);
 
-        await _epochMemberRepository.AddAsync(
-            new EpochMember(Guid.NewGuid(), epoch.Id, participant3.Id, DateTime.UtcNow),
-            cancellationToken);
+        await EnsureEpochMemberAsync(activeEpoch.Id, participant1.Id, cancellationToken);
+        await EnsureEpochMemberAsync(activeEpoch.Id, participant2.Id, cancellationToken);
+        await EnsureEpochMemberAsync(activeEpoch.Id, participant3.Id, cancellationToken);
 
         Snapshot = new DevelopmentSeedSnapshot
         {
-            EpochId = epoch.Id,
-            EpochNumber = epoch.Number,
+            EpochId = activeEpoch.Id,
+            EpochNumber = activeEpoch.Number,
             Participant1Id = participant1.Id,
             Participant2Id = participant2.Id,
             Participant3Id = participant3.Id
         };
+    }
+
+    private async Task<Participant> EnsureParticipantAsync(
+        Guid participantId,
+        string displayName,
+        ScalarValue privateKey,
+        CancellationToken cancellationToken)
+    {
+        var existing = await _participantRepository.GetByIdAsync(participantId, cancellationToken);
+        if (existing is not null)
+            return existing;
+
+        var participant = new Participant(
+            participantId,
+            displayName,
+            _publicKeyGenerationService.DerivePublicKey(privateKey),
+            ParticipantStatus.Active,
+            DateTime.UtcNow);
+
+        await _participantRepository.AddAsync(participant, cancellationToken);
+
+        return participant;
+    }
+
+    private async Task<Epoch> EnsureActiveEpochAsync(CancellationToken cancellationToken)
+    {
+        var epochs = await _epochRepository.ListAsync(cancellationToken);
+
+        var activeEpoch = epochs
+            .Where(x => x.Status == EpochStatus.Active)
+            .OrderByDescending(x => x.Number)
+            .FirstOrDefault();
+
+        if (activeEpoch is not null)
+            return activeEpoch;
+
+        var nextNumber = epochs.Count == 0
+            ? 1
+            : epochs.Max(x => x.Number) + 1;
+
+        var epochId = epochs.Count == 0
+            ? Guid.Parse("11111111-1111-1111-1111-111111111111")
+            : Guid.NewGuid();
+
+        var newEpoch = new Epoch(
+            epochId,
+            nextNumber,
+            DateTime.UtcNow);
+
+        newEpoch.Activate(DateTime.UtcNow);
+
+        await _epochRepository.AddAsync(newEpoch, cancellationToken);
+
+        return newEpoch;
+    }
+
+    private async Task EnsureEpochMemberAsync(
+        Guid epochId,
+        Guid participantId,
+        CancellationToken cancellationToken)
+    {
+        var members = await _epochMemberRepository.GetByEpochIdAsync(epochId, cancellationToken);
+
+        var alreadyExists = members.Any(x => x.ParticipantId == participantId);
+        if (alreadyExists)
+            return;
+
+        await _epochMemberRepository.AddAsync(
+            new EpochMember(
+                Guid.NewGuid(),
+                epochId,
+                participantId,
+                DateTime.UtcNow),
+            cancellationToken);
     }
 }
