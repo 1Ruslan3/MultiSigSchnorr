@@ -1,0 +1,21 @@
+services:
+  postgres:
+    image: postgres:18
+    container_name: multisig-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: multisig_schnorr
+      POSTGRES_USER: multisig_user
+      POSTGRES_PASSWORD: multisig_password
+    ports:
+      - "5433:5432"
+    volumes:
+      - multisig_postgres_data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U multisig_user -d multisig_schnorr"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  multisig_postgres_data:
