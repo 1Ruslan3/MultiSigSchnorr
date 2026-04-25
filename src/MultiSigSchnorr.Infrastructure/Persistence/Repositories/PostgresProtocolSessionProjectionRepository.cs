@@ -37,27 +37,7 @@ public sealed class PostgresProtocolSessionProjectionRepository : IProtocolSessi
         }
 
         FillSessionEntity(entity, session);
-
-        _dbContext.ProtocolSessionParticipants.RemoveRange(entity.Participants);
-
-        entity.Participants = session.Participants.Values
-            .OrderBy(x => x.DisplayName, StringComparer.Ordinal)
-            .Select(x => new ProtocolSessionParticipantProjectionEntity
-            {
-                Id = Guid.NewGuid(),
-                SessionId = session.SessionId,
-                ParticipantId = x.ParticipantId,
-                DisplayName = x.DisplayName,
-                HasCommitment = x.HasCommitment,
-                HasReveal = x.HasReveal,
-                HasPartialSignature = x.HasPartialSignature,
-                PublicKeyHex = x.PublicKey.ToHex(),
-                AggregationCoefficientHex = x.AggregationCoefficient.ToHex(),
-                CommitmentHex = x.CommitmentRecord?.Commitment.ToHex(),
-                PublicNoncePointHex = x.RevealRecord?.PublicNoncePoint.ToHex(),
-                PartialSignatureHex = x.PartialSignatureRecord?.SignatureScalar.ToHex()
-            })
-            .ToList();
+        UpsertParticipantEntities(entity, session);
 
         await _dbContext.SaveChangesAsync(cancellationToken);
     }
@@ -88,6 +68,47 @@ public sealed class PostgresProtocolSessionProjectionRepository : IProtocolSessi
             .ToList();
     }
 
+    private void UpsertParticipantEntities(
+        ProtocolSessionProjectionEntity entity,
+        NPartyProtocolSession session)
+    {
+        var runtimeParticipants = session.Participants.Values
+            .OrderBy(x => x.DisplayName, StringComparer.Ordinal)
+            .ToList();
+
+        var runtimeParticipantIds = runtimeParticipants
+            .Select(x => x.ParticipantId)
+            .ToHashSet();
+
+        var obsoleteEntities = entity.Participants
+            .Where(x => !runtimeParticipantIds.Contains(x.ParticipantId))
+            .ToList();
+
+        if (obsoleteEntities.Count > 0)
+            _dbContext.ProtocolSessionParticipants.RemoveRange(obsoleteEntities);
+
+        var existingByParticipantId = entity.Participants
+            .Where(x => runtimeParticipantIds.Contains(x.ParticipantId))
+            .ToDictionary(x => x.ParticipantId);
+
+        foreach (var participant in runtimeParticipants)
+        {
+            if (!existingByParticipantId.TryGetValue(participant.ParticipantId, out var participantEntity))
+            {
+                participantEntity = new ProtocolSessionParticipantProjectionEntity
+                {
+                    Id = Guid.NewGuid(),
+                    SessionId = session.SessionId,
+                    ParticipantId = participant.ParticipantId
+                };
+
+                entity.Participants.Add(participantEntity);
+            }
+
+            FillParticipantEntity(participantEntity, participant);
+        }
+    }
+
     private static void FillSessionEntity(
         ProtocolSessionProjectionEntity entity,
         NPartyProtocolSession session)
@@ -109,15 +130,37 @@ public sealed class PostgresProtocolSessionProjectionRepository : IProtocolSessi
         entity.AllPartialSignaturesSubmitted = session.AllPartialSignaturesSubmitted;
     }
 
-    private static ProtocolSessionProjection MapToProjection(ProtocolSessionProjectionEntity entity)
+    private static void FillParticipantEntity(
+        ProtocolSessionParticipantProjectionEntity entity,
+        NPartyParticipantProtocolState participant)
     {
-        if (!Enum.TryParse<SessionStatus>(entity.SessionStatus, ignoreCase: true, out var sessionStatus))
+        entity.DisplayName = participant.DisplayName;
+        entity.HasCommitment = participant.HasCommitment;
+        entity.HasReveal = participant.HasReveal;
+        entity.HasPartialSignature = participant.HasPartialSignature;
+        entity.PublicKeyHex = participant.PublicKey.ToHex();
+        entity.AggregationCoefficientHex = participant.AggregationCoefficient.ToHex();
+        entity.CommitmentHex = participant.CommitmentRecord?.Commitment.ToHex();
+        entity.PublicNoncePointHex = participant.RevealRecord?.PublicNoncePoint.ToHex();
+        entity.PartialSignatureHex = participant.PartialSignatureRecord?.SignatureScalar.ToHex();
+    }
+
+    private static ProtocolSessionProjection MapToProjection(
+        ProtocolSessionProjectionEntity entity)
+    {
+        if (!Enum.TryParse<SessionStatus>(
+                entity.SessionStatus,
+                ignoreCase: true,
+                out var sessionStatus))
         {
             throw new InvalidOperationException(
                 $"Unsupported session status '{entity.SessionStatus}'.");
         }
 
-        if (!Enum.TryParse<SignatureProtectionMode>(entity.ProtectionMode, ignoreCase: true, out var protectionMode))
+        if (!Enum.TryParse<SignatureProtectionMode>(
+                entity.ProtectionMode,
+                ignoreCase: true,
+                out var protectionMode))
         {
             throw new InvalidOperationException(
                 $"Unsupported protection mode '{entity.ProtectionMode}'.");

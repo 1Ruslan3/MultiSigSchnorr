@@ -25,6 +25,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\MultiSigSchnorr.Api\MultiSigSchnorr.Api.csproj" />
     <ProjectReference Include="..\..\src\MultiSigSchnorr.Contracts\MultiSigSchnorr.Contracts.csproj" />
+    <ProjectReference Include="..\..\src\MultiSigSchnorr.Infrastructure\MultiSigSchnorr.Infrastructure.csproj" />
   </ItemGroup>
 
 </Project>
