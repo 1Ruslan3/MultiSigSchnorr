@@ -10,8 +10,14 @@
         <div>
             <h1>System Overview</h1>
             <p class="overview-subtitle">
-                Обзор seed-данных, активной эпохи и зарегистрированных участников для демонстрации и ручной проверки API.
+                Обзор seed-данных, активной эпохи, зарегистрированных участников и состояния PostgreSQL-хранилища.
             </p>
+        </div>
+
+        <div>
+            <button class="btn btn-outline-secondary" @onclick="LoadAsync">
+                Обновить
+            </button>
         </div>
     </div>
 
@@ -50,12 +56,99 @@
 
                 <div class="overview-card">
                     <div class="overview-card-header">
+                        <h3>PostgreSQL storage</h3>
+                    </div>
+
+                    @if (_storage is null)
+                    {
+                        <em>Загрузка диагностики хранилища...</em>
+                    }
+                    else
+                    {
+                        <div class="overview-meta">
+                            <div class="overview-meta-item">
+                                <span class="label">Storage Provider</span>
+                                <div>@_storage.StorageProvider</div>
+                            </div>
+
+                            <div class="overview-meta-item">
+                                <span class="label">Database Provider</span>
+                                <div>@_storage.DatabaseProvider</div>
+                            </div>
+
+                            <div class="overview-meta-item">
+                                <span class="label">Connection</span>
+                                @if (_storage.CanConnect)
+                                {
+                                    <span class="badge bg-success">Connected</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-danger">Disconnected</span>
+                                }
+                            </div>
+
+                            <div class="overview-meta-item">
+                                <span class="label">Applied migrations</span>
+                                <div>@_storage.AppliedMigrationsCount</div>
+                            </div>
+
+                            <div class="overview-meta-item">
+                                <span class="label">Latest migration</span>
+                                <code>@(_storage.LatestMigration ?? "—")</code>
+                            </div>
+
+                            <div class="overview-meta-item">
+                                <span class="label">Checked UTC</span>
+                                <div>@_storage.CheckedUtc.ToString("yyyy-MM-dd HH:mm:ss")</div>
+                            </div>
+                        </div>
+
+                        <div class="storage-count-grid">
+                            <div class="storage-count-card">
+                                <div class="storage-count-value">@_storage.EpochsCount</div>
+                                <div class="storage-count-label">Epochs</div>
+                            </div>
+
+                            <div class="storage-count-card">
+                                <div class="storage-count-value">@_storage.ParticipantsCount</div>
+                                <div class="storage-count-label">Participants</div>
+                            </div>
+
+                            <div class="storage-count-card">
+                                <div class="storage-count-value">@_storage.EpochMembersCount</div>
+                                <div class="storage-count-label">Epoch Members</div>
+                            </div>
+
+                            <div class="storage-count-card">
+                                <div class="storage-count-value">@_storage.AuditLogEntriesCount</div>
+                                <div class="storage-count-label">Audit Entries</div>
+                            </div>
+
+                            <div class="storage-count-card">
+                                <div class="storage-count-value">@_storage.ProtocolSessionsCount</div>
+                                <div class="storage-count-label">Protocol Sessions</div>
+                            </div>
+
+                            <div class="storage-count-card">
+                                <div class="storage-count-value">@_storage.ProtocolSessionParticipantsCount</div>
+                                <div class="storage-count-label">Session Participants</div>
+                            </div>
+                        </div>
+                    }
+                </div>
+
+                <div class="overview-card">
+                    <div class="overview-card-header">
                         <h3>Использование API</h3>
                     </div>
 
                     <div class="overview-api-block">
                         <p><strong>Создание сессии:</strong></p>
                         <code>POST /api/protocol-sessions</code>
+
+                        <p class="mt-3"><strong>Диагностика хранилища:</strong></p>
+                        <code>GET /api/system/storage</code>
 
                         <p class="mt-3"><strong>Пример тела запроса:</strong></p>
                         <pre>@_createSessionExample</pre>
@@ -102,6 +195,7 @@
 @code
 {
     private DevelopmentSeedApiResponse? _seed;
+    private StorageDiagnosticsApiResponse? _storage;
     private string? _error;
     private string _createSessionExample = string.Empty;
 
@@ -115,7 +209,9 @@
         try
         {
             _error = null;
+
             _seed = await ApiClient.GetSeedAsync();
+            _storage = await ApiClient.GetStorageDiagnosticsAsync();
 
             _createSessionExample =
 $@"{{

@@ -27,13 +27,24 @@ public sealed class ProtocolSessionsApiClient
         return new Uri(BaseAddress, relativePath).ToString();
     }
 
-    public async Task<DevelopmentSeedApiResponse> GetSeedAsync(CancellationToken cancellationToken = default)
+    public async Task<DevelopmentSeedApiResponse> GetSeedAsync(
+        CancellationToken cancellationToken = default)
     {
         var result = await _httpClient.GetFromJsonAsync<DevelopmentSeedApiResponse>(
             "api/system/seed",
             cancellationToken);
 
         return result ?? throw new InvalidOperationException("Seed data response was empty.");
+    }
+
+    public async Task<StorageDiagnosticsApiResponse> GetStorageDiagnosticsAsync(
+        CancellationToken cancellationToken = default)
+    {
+        var result = await _httpClient.GetFromJsonAsync<StorageDiagnosticsApiResponse>(
+            "api/system/storage",
+            cancellationToken);
+
+        return result ?? throw new InvalidOperationException("Storage diagnostics response was empty.");
     }
 
     public async Task<EpochAdministrationStateApiResponse> GetAdministrationStateAsync(
