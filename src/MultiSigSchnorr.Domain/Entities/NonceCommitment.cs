@@ -31,5 +31,4 @@ public sealed class NonceCommitment
         SubmittedUtc = submittedUtc;
     }
 
-    private NonceCommitment() { }
 }

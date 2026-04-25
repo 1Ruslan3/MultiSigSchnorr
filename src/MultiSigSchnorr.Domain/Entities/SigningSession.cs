@@ -40,5 +40,4 @@ public sealed class SigningSession
     public void Fail() => Status = SessionStatus.Failed;
     public void Cancel() => Status = SessionStatus.Cancelled;
 
-    private SigningSession() { }
 }

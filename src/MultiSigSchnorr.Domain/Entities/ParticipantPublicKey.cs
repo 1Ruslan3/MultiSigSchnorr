@@ -31,5 +31,4 @@ public sealed class ParticipantPublicKey
         CreatedUtc = createdUtc;
     }
 
-    private ParticipantPublicKey() { }
 }

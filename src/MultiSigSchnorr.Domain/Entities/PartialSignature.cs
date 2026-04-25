@@ -31,5 +31,4 @@ public sealed class PartialSignature
         SubmittedUtc = submittedUtc;
     }
 
-    private PartialSignature() { }
 }

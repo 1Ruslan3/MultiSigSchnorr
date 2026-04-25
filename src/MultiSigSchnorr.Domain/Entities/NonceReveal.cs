@@ -31,5 +31,4 @@ public sealed class NonceReveal
         SubmittedUtc = submittedUtc;
     }
 
-    private NonceReveal() { }
 }

@@ -29,5 +29,4 @@ public sealed class AuditEvent
         CreatedUtc = createdUtc;
     }
 
-    private AuditEvent() { }
 }

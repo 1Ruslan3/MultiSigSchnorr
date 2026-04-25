@@ -26,5 +26,4 @@ public sealed class RevocationRecord
         RevokedUtc = revokedUtc;
     }
 
-    private RevocationRecord() { }
 }

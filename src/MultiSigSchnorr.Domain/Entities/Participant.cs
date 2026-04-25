@@ -48,5 +48,4 @@ public sealed class Participant
         RevokedUtc = revokedUtc;
     }
 
-    private Participant() { }
 }

@@ -29,5 +29,4 @@ public sealed class AggregateSignature
         CreatedUtc = createdUtc;
     }
 
-    private AggregateSignature() { }
 }

@@ -26,5 +26,4 @@ public sealed class User
         CreatedUtc = createdUtc;
     }
 
-    private User() { }
 }
