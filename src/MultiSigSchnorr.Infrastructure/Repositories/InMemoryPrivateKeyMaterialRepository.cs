@@ -29,4 +29,14 @@ public sealed class InMemoryPrivateKeyMaterialRepository : IPrivateKeyMaterialRe
         _keys.TryGetValue(participantId, out var privateKey);
         return Task.FromResult(privateKey);
     }
+
+    public Task<bool> HasPrivateKeyMaterialAsync(
+        Guid participantId,
+        CancellationToken cancellationToken = default)
+    {
+        if (participantId == Guid.Empty)
+            return Task.FromResult(false);
+
+        return Task.FromResult(_keys.ContainsKey(participantId));
+    }
 }

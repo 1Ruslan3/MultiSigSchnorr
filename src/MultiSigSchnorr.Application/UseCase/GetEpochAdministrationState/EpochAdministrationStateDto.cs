@@ -31,5 +31,6 @@ public sealed class EpochAdministrationParticipantItemDto
 
     public bool IsMemberOfActiveEpoch { get; init; }
     public bool IsActiveMemberOfActiveEpoch { get; init; }
+    public bool HasRuntimePrivateKeyMaterial { get; init; }
     public bool CanBeRevoked { get; init; }
 }

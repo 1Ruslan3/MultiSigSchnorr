@@ -118,6 +118,7 @@ public sealed class AdministrationController : ControllerBase
                     PublicKeyHex = x.PublicKeyHex,
                     IsMemberOfActiveEpoch = x.IsMemberOfActiveEpoch,
                     IsActiveMemberOfActiveEpoch = x.IsActiveMemberOfActiveEpoch,
+                    HasRuntimePrivateKeyMaterial = x.HasRuntimePrivateKeyMaterial,
                     CanBeRevoked = x.CanBeRevoked
                 })
                 .ToList()

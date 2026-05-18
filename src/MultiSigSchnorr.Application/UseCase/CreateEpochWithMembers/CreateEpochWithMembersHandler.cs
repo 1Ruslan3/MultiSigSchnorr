@@ -9,15 +9,18 @@ public sealed class CreateEpochWithMembersHandler
     private readonly IEpochRepository _epochRepository;
     private readonly IParticipantRepository _participantRepository;
     private readonly IEpochMemberRepository _epochMemberRepository;
+    private readonly IPrivateKeyMaterialRepository _privateKeyMaterialRepository;
 
     public CreateEpochWithMembersHandler(
         IEpochRepository epochRepository,
         IParticipantRepository participantRepository,
-        IEpochMemberRepository epochMemberRepository)
+        IEpochMemberRepository epochMemberRepository,
+        IPrivateKeyMaterialRepository privateKeyMaterialRepository)
     {
         _epochRepository = epochRepository ?? throw new ArgumentNullException(nameof(epochRepository));
         _participantRepository = participantRepository ?? throw new ArgumentNullException(nameof(participantRepository));
         _epochMemberRepository = epochMemberRepository ?? throw new ArgumentNullException(nameof(epochMemberRepository));
+        _privateKeyMaterialRepository = privateKeyMaterialRepository ?? throw new ArgumentNullException(nameof(privateKeyMaterialRepository));
     }
 
     public async Task<Epoch> HandleAsync(
@@ -52,6 +55,26 @@ public sealed class CreateEpochWithMembersHandler
             throw new InvalidOperationException(
                 "Only active participants can be included in a new epoch. Invalid participants: " +
                 string.Join(", ", inactiveParticipants));
+        }
+
+        var missingPrivateKeyParticipants = new List<string>();
+
+        foreach (var participant in participants)
+        {
+            var hasPrivateKey = await _privateKeyMaterialRepository.HasPrivateKeyMaterialAsync(
+                participant.Id,
+                cancellationToken);
+
+            if (!hasPrivateKey)
+                missingPrivateKeyParticipants.Add($"{participant.DisplayName} ({participant.Id})");
+        }
+
+        if (missingPrivateKeyParticipants.Count > 0)
+        {
+            throw new InvalidOperationException(
+                "Only participants with runtime private key material can be included in a signing epoch. " +
+                "Participants without runtime private key material: " +
+                string.Join(", ", missingPrivateKeyParticipants));
         }
 
         var epochs = await _epochRepository.ListAsync(cancellationToken);

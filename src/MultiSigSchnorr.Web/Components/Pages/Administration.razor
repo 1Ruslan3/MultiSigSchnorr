@@ -201,6 +201,15 @@
                                         {
                                             <span class="member-pill member-none">Not in active epoch</span>
                                         }
+
+                                        @if (participant.HasRuntimePrivateKeyMaterial)
+                                        {
+                                            <span class="member-pill member-active">Runtime key ready</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="member-pill member-inactive">Missing runtime key</span>
+                                        }
                                     </div>
                                 </div>
 
@@ -223,7 +232,7 @@
                                     <label class="member-select-row">
                                         <input type="checkbox"
                                                checked="@_selectedParticipantIds.Contains(participant.ParticipantId)"
-                                               disabled="@(_isBusy || participant.ParticipantStatus != ParticipantStatus.Active)"
+                                               disabled="@(_isBusy || participant.ParticipantStatus != ParticipantStatus.Active || !participant.HasRuntimePrivateKeyMaterial)"
                                                @onchange="args => ToggleParticipantSelection(participant.ParticipantId, args)" />
                                         <span>Включить в новую эпоху</span>
                                     </label>

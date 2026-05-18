@@ -8,15 +8,18 @@ public sealed class GetEpochAdministrationStateHandler
     private readonly IEpochRepository _epochRepository;
     private readonly IParticipantRepository _participantRepository;
     private readonly IEpochMemberRepository _epochMemberRepository;
+    private readonly IPrivateKeyMaterialRepository _privateKeyMaterialRepository;
 
     public GetEpochAdministrationStateHandler(
         IEpochRepository epochRepository,
         IParticipantRepository participantRepository,
-        IEpochMemberRepository epochMemberRepository)
+        IEpochMemberRepository epochMemberRepository,
+        IPrivateKeyMaterialRepository privateKeyMaterialRepository)
     {
         _epochRepository = epochRepository ?? throw new ArgumentNullException(nameof(epochRepository));
         _participantRepository = participantRepository ?? throw new ArgumentNullException(nameof(participantRepository));
         _epochMemberRepository = epochMemberRepository ?? throw new ArgumentNullException(nameof(epochMemberRepository));
+        _privateKeyMaterialRepository = privateKeyMaterialRepository ?? throw new ArgumentNullException(nameof(privateKeyMaterialRepository));
     }
 
     public async Task<EpochAdministrationStateDto> HandleAsync(
@@ -34,32 +37,41 @@ public sealed class GetEpochAdministrationStateHandler
         if (activeEpoch is null)
             throw new InvalidOperationException("Active epoch was not found.");
 
-        var epochMembers = await _epochMemberRepository.GetByEpochIdAsync(activeEpoch.Id, cancellationToken);
+        var epochMembers = await _epochMemberRepository.GetByEpochIdAsync(
+            activeEpoch.Id,
+            cancellationToken);
+
         var memberMap = epochMembers
             .GroupBy(x => x.ParticipantId)
             .ToDictionary(x => x.Key, x => x.First());
 
         var participants = await _participantRepository.ListAsync(cancellationToken);
 
-        var participantItems = participants
-            .OrderBy(x => x.DisplayName, StringComparer.Ordinal)
-            .Select(x =>
-            {
-                var isMember = memberMap.TryGetValue(x.Id, out var member);
-                var isActiveMember = isMember && member!.IsActive;
+        var participantItems = new List<EpochAdministrationParticipantItemDto>();
 
-                return new EpochAdministrationParticipantItemDto
-                {
-                    ParticipantId = x.Id,
-                    DisplayName = x.DisplayName,
-                    ParticipantStatus = x.Status,
-                    PublicKeyHex = x.PublicKey.ToHex(),
-                    IsMemberOfActiveEpoch = isMember,
-                    IsActiveMemberOfActiveEpoch = isActiveMember,
-                    CanBeRevoked = x.Status == ParticipantStatus.Active && isActiveMember
-                };
-            })
-            .ToList();
+        foreach (var participant in participants.OrderBy(x => x.DisplayName, StringComparer.Ordinal))
+        {
+            var isMember = memberMap.TryGetValue(participant.Id, out var member);
+            var isEpochMemberActive = isMember && member!.IsActive;
+            var isParticipantActive = participant.Status == ParticipantStatus.Active;
+            var hasRuntimePrivateKeyMaterial = await _privateKeyMaterialRepository.HasPrivateKeyMaterialAsync(
+                participant.Id,
+                cancellationToken);
+
+            var isActiveMember = isMember && isEpochMemberActive && isParticipantActive;
+
+            participantItems.Add(new EpochAdministrationParticipantItemDto
+            {
+                ParticipantId = participant.Id,
+                DisplayName = participant.DisplayName,
+                ParticipantStatus = participant.Status,
+                PublicKeyHex = participant.PublicKey.ToHex(),
+                IsMemberOfActiveEpoch = isMember,
+                IsActiveMemberOfActiveEpoch = isActiveMember,
+                HasRuntimePrivateKeyMaterial = hasRuntimePrivateKeyMaterial,
+                CanBeRevoked = isActiveMember
+            });
+        }
 
         var epochItems = epochs
             .OrderByDescending(x => x.Number)

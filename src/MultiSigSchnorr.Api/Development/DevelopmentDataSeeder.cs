@@ -8,6 +8,21 @@ namespace MultiSigSchnorr.Api.Development;
 
 public sealed class DevelopmentDataSeeder
 {
+    private static readonly Guid SeedParticipant1Id = Guid.Parse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa1");
+    private static readonly Guid SeedParticipant2Id = Guid.Parse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa2");
+    private static readonly Guid SeedParticipant3Id = Guid.Parse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa3");
+
+    private static readonly Guid InitialSeedEpochId = Guid.Parse("11111111-1111-1111-1111-111111111111");
+
+    private static readonly ScalarValue SeedPrivateKey1 = ScalarValue.FromHex(
+        "101112131415161718191A1B1C1D1E1F202122232425262728292A2B2C2D2E2F");
+
+    private static readonly ScalarValue SeedPrivateKey2 = ScalarValue.FromHex(
+        "3132333435363738393A3B3C3D3E3F404142434445464748494A4B4C4D4E4F50");
+
+    private static readonly ScalarValue SeedPrivateKey3 = ScalarValue.FromHex(
+        "5152535455565758595A5B5C5D5E5F606162636465666768696A6B6C6D6E6F70");
+
     private readonly IEpochRepository _epochRepository;
     private readonly IParticipantRepository _participantRepository;
     private readonly IEpochMemberRepository _epochMemberRepository;
@@ -32,41 +47,31 @@ public sealed class DevelopmentDataSeeder
 
     public async Task SeedAsync(CancellationToken cancellationToken = default)
     {
-        var participant1Id = Guid.Parse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa1");
-        var participant2Id = Guid.Parse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa2");
-        var participant3Id = Guid.Parse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa3");
-
-        var privateKey1 = ScalarValue.FromHex("101112131415161718191A1B1C1D1E1F202122232425262728292A2B2C2D2E2F");
-        var privateKey2 = ScalarValue.FromHex("3132333435363738393A3B3C3D3E3F404142434445464748494A4B4C4D4E4F50");
-        var privateKey3 = ScalarValue.FromHex("5152535455565758595A5B5C5D5E5F606162636465666768696A6B6C6D6E6F70");
-
-        await _privateKeyMaterialRepository.SetAsync(participant1Id, privateKey1, cancellationToken);
-        await _privateKeyMaterialRepository.SetAsync(participant2Id, privateKey2, cancellationToken);
-        await _privateKeyMaterialRepository.SetAsync(participant3Id, privateKey3, cancellationToken);
+        await EnsureSeedPrivateKeyMaterialAsync(cancellationToken);
 
         var participant1 = await EnsureParticipantAsync(
-            participant1Id,
+            SeedParticipant1Id,
             "Participant-1",
-            privateKey1,
+            SeedPrivateKey1,
             cancellationToken);
 
         var participant2 = await EnsureParticipantAsync(
-            participant2Id,
+            SeedParticipant2Id,
             "Participant-2",
-            privateKey2,
+            SeedPrivateKey2,
             cancellationToken);
 
         var participant3 = await EnsureParticipantAsync(
-            participant3Id,
+            SeedParticipant3Id,
             "Participant-3",
-            privateKey3,
+            SeedPrivateKey3,
             cancellationToken);
 
-        var activeEpoch = await EnsureActiveEpochAsync(cancellationToken);
-
-        await EnsureEpochMemberAsync(activeEpoch.Id, participant1.Id, cancellationToken);
-        await EnsureEpochMemberAsync(activeEpoch.Id, participant2.Id, cancellationToken);
-        await EnsureEpochMemberAsync(activeEpoch.Id, participant3.Id, cancellationToken);
+        var activeEpoch = await EnsureDevelopmentEpochOnlyWhenNoActiveEpochExistsAsync(
+            participant1,
+            participant2,
+            participant3,
+            cancellationToken);
 
         Snapshot = new DevelopmentSeedSnapshot
         {
@@ -76,6 +81,24 @@ public sealed class DevelopmentDataSeeder
             Participant2Id = participant2.Id,
             Participant3Id = participant3.Id
         };
+    }
+
+    private async Task EnsureSeedPrivateKeyMaterialAsync(CancellationToken cancellationToken)
+    {
+        await _privateKeyMaterialRepository.SetAsync(
+            SeedParticipant1Id,
+            SeedPrivateKey1,
+            cancellationToken);
+
+        await _privateKeyMaterialRepository.SetAsync(
+            SeedParticipant2Id,
+            SeedPrivateKey2,
+            cancellationToken);
+
+        await _privateKeyMaterialRepository.SetAsync(
+            SeedParticipant3Id,
+            SeedPrivateKey3,
+            cancellationToken);
     }
 
     private async Task<Participant> EnsureParticipantAsync(
@@ -100,7 +123,11 @@ public sealed class DevelopmentDataSeeder
         return participant;
     }
 
-    private async Task<Epoch> EnsureActiveEpochAsync(CancellationToken cancellationToken)
+    private async Task<Epoch> EnsureDevelopmentEpochOnlyWhenNoActiveEpochExistsAsync(
+        Participant participant1,
+        Participant participant2,
+        Participant participant3,
+        CancellationToken cancellationToken)
     {
         var epochs = await _epochRepository.ListAsync(cancellationToken);
 
@@ -110,14 +137,16 @@ public sealed class DevelopmentDataSeeder
             .FirstOrDefault();
 
         if (activeEpoch is not null)
+        {
             return activeEpoch;
+        }
 
         var nextNumber = epochs.Count == 0
             ? 1
             : epochs.Max(x => x.Number) + 1;
 
         var epochId = epochs.Count == 0
-            ? Guid.Parse("11111111-1111-1111-1111-111111111111")
+            ? InitialSeedEpochId
             : Guid.NewGuid();
 
         var newEpoch = new Epoch(
@@ -128,6 +157,10 @@ public sealed class DevelopmentDataSeeder
         newEpoch.Activate(DateTime.UtcNow);
 
         await _epochRepository.AddAsync(newEpoch, cancellationToken);
+
+        await EnsureEpochMemberAsync(newEpoch.Id, participant1.Id, cancellationToken);
+        await EnsureEpochMemberAsync(newEpoch.Id, participant2.Id, cancellationToken);
+        await EnsureEpochMemberAsync(newEpoch.Id, participant3.Id, cancellationToken);
 
         return newEpoch;
     }

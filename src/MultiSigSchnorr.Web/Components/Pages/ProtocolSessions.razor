@@ -1,6 +1,6 @@
 @page "/protocol-sessions"
 @using Microsoft.AspNetCore.Components
-@using MultiSigSchnorr.Contracts.Diagnostics
+@using MultiSigSchnorr.Contracts.Administration
 @using MultiSigSchnorr.Contracts.ProtocolSessions
 @using MultiSigSchnorr.Domain.Enums
 @rendermode InteractiveServer
@@ -13,7 +13,8 @@
         <div>
             <h1>Protocol Sessions</h1>
             <p class="page-subtitle">
-                Управление коллективной подписью Шнорра: создание сессии, прохождение раундов, верификация и формирование отчёта.
+                Управление коллективной подписью Шнорра: создание сессии на основе активной эпохи,
+                прохождение раундов, верификация и формирование отчёта.
             </p>
         </div>
     </div>
@@ -32,30 +33,91 @@
         <section class="left-column">
             <div class="panel-card">
                 <div class="panel-card-header">
-                    <h3>Seed данные</h3>
+                    <h3>Новая протокольная сессия</h3>
                 </div>
 
-                @if (_seed is null)
+                @if (_administrationState is null)
                 {
                     <div class="loading-box">
-                        <em>Загрузка seed-данных...</em>
+                        <em>Загрузка активной эпохи и состава группы...</em>
                     </div>
                 }
                 else
                 {
                     <div class="seed-meta">
-                        <div><span>Epoch ID:</span> @_seed.EpochId</div>
-                        <div><span>Epoch Number:</span> @_seed.EpochNumber</div>
+                        <div><span>Active Epoch ID:</span> @_administrationState.ActiveEpochId</div>
+                        <div><span>Epoch Number:</span> @_administrationState.ActiveEpochNumber</div>
+                        <div><span>Epoch Status:</span> @_administrationState.ActiveEpochStatus</div>
                     </div>
 
                     <div class="seed-participants">
-                        <h4>Участники</h4>
-                        <ul>
-                            @foreach (var participantId in _seed.ParticipantIds)
-                            {
-                                <li>@participantId</li>
-                            }
-                        </ul>
+                        <h4>Участники активной эпохи</h4>
+
+                        @if (ActiveEpochParticipants.Count == 0)
+                        {
+                            <div class="alert alert-warning mb-0">
+                                В активной эпохе нет доступных участников. Перейди в раздел Administration
+                                и создай новую эпоху с выбранным составом группы.
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="participants-list">
+                                @foreach (var participant in ActiveEpochParticipants.OrderBy(x => x.DisplayName, StringComparer.Ordinal))
+                                {
+                                    <label class="participant-card" style="cursor: pointer;">
+                                        <div class="participant-header">
+                                            <div>
+                                                <div class="participant-name">@participant.DisplayName</div>
+                                                <div class="participant-id">@participant.ParticipantId</div>
+                                            </div>
+                                            <input class="form-check-input"
+                                                   type="checkbox"
+                                                   checked="@_selectedParticipantIds.Contains(participant.ParticipantId)"
+                                                   disabled="@(!participant.HasRuntimePrivateKeyMaterial)"
+                                                   @onchange="args => ToggleParticipantSelection(participant.ParticipantId, args)" />
+                                        </div>
+
+                                        <div class="participant-data-grid">
+                                            <div>
+                                                <div class="data-label">Status</div>
+                                                <span class="flag done">@participant.ParticipantStatus</span>
+                                            </div>
+                                            <div>
+                                                <div class="data-label">Active Epoch Member</div>
+                                                <span class="flag @(participant.IsActiveMemberOfActiveEpoch ? "done" : null)">
+                                                    @participant.IsActiveMemberOfActiveEpoch
+                                                </span>
+                                            </div>
+                                            <div>
+                                                <div class="data-label">Runtime Private Key</div>
+                                                <span class="flag @(participant.HasRuntimePrivateKeyMaterial ? "done" : null)">
+                                                    @(participant.HasRuntimePrivateKeyMaterial ? "Ready" : "Missing")
+                                                </span>
+                                            </div>
+                                            <div>
+                                                <div class="data-label">Public Key</div>
+                                                <code>@participant.PublicKeyHex</code>
+                                            </div>
+                                        </div>
+                                    </label>
+                                }
+                            </div>
+
+                            <div class="alert alert-secondary mt-3 mb-0">
+                                Выбрано участников: <strong>@_selectedParticipantIds.Count</strong>.
+                                Для создания протокольной сессии нужно минимум 2 участника.
+                            </div>
+                        }
+                    </div>
+
+                    <div class="action-row mt-3">
+                        <button class="btn btn-outline-secondary" @onclick="SelectAllActiveEpochParticipants">
+                            Выбрать всех
+                        </button>
+                        <button class="btn btn-outline-secondary" @onclick="ClearSelectedParticipants">
+                            Очистить выбор
+                        </button>
                     </div>
 
                     <div class="form-block">
@@ -72,12 +134,20 @@
                     </div>
 
                     <div class="action-row">
-                        <button class="btn btn-primary" @onclick="CreateSessionAsync">
+                        <button class="btn btn-primary"
+                                disabled="@(_selectedParticipantIds.Count < 2 || string.IsNullOrWhiteSpace(_message))"
+                                @onclick="CreateSessionAsync">
                             Создать протокольную сессию
                         </button>
-                        <button class="btn btn-outline-secondary" @onclick="LoadSeedAsync">
-                            Обновить seed
+
+                        <button class="btn btn-outline-secondary" @onclick="LoadAdministrationStateAsync">
+                            Обновить состав группы
                         </button>
+                    </div>
+
+                    <div class="alert alert-info mt-3 mb-0">
+                        Сессия создаётся по активной эпохе и выбранному составу участников.
+                        Старый seed-набор больше не используется для выбора подписантов.
                     </div>
                 }
             </div>
@@ -116,40 +186,41 @@
                     </div>
                 </div>
             }
-            else
+            else if (_session is { } session)
             {
                 <div class="panel-card">
                     <div class="panel-card-header">
                         <h3>Текущее состояние сессии</h3>
-                        <span class="status-pill status-@GetStatusCss(_session.SessionStatus)">
-                            @_session.SessionStatus
+                        <span class="status-pill status-@GetStatusCss(session.SessionStatus)">
+                            @session.SessionStatus
                         </span>
                     </div>
 
                     <div class="session-meta-grid">
                         <div class="meta-box">
                             <div class="meta-label">Session ID</div>
-                            <code>@_session.SessionId</code>
+                            <code>@session.SessionId</code>
                         </div>
                         <div class="meta-box">
                             <div class="meta-label">Epoch</div>
-                            <div>@_session.EpochId</div>
-                            <small>№ @_session.EpochNumber</small>
+                            <div>@session.EpochId</div>
+                            <small>№ @session.EpochNumber</small>
                         </div>
                         <div class="meta-box">
                             <div class="meta-label">Protection Mode</div>
-                            <div>@_session.ProtectionMode</div>
+                            <div>@session.ProtectionMode</div>
                         </div>
                         <div class="meta-box">
                             <div class="meta-label">Message Digest</div>
-                            <code>@_session.MessageDigestHex</code>
+                            <code>@session.MessageDigestHex</code>
                         </div>
                         <div class="meta-box">
                             <div class="meta-label">Aggregate Public Key</div>
-                            <code>@_session.AggregatePublicKeyHex</code>
+                            <code>@session.AggregatePublicKeyHex</code>
                         </div>
                     </div>
-                    @if (!_session.IsRuntimeStateAvailable)
+
+                    @if (!session.IsRuntimeStateAvailable)
                     {
                         <div class="alert alert-warning mt-3">
                             Эта сессия восстановлена из PostgreSQL-проекции и доступна только для просмотра, отчёта и экспорта.
@@ -164,27 +235,27 @@
                     </div>
 
                     <div class="stages-grid">
-                        <div class="stage-item @GetStageCss(_session.SessionStatus == SessionStatus.Created)">
+                        <div class="stage-item @GetStageCss(session.SessionStatus == SessionStatus.Created)">
                             <div class="stage-title">1. Created</div>
                             <div class="stage-desc">Сессия создана и готова к раунду commitments.</div>
                         </div>
 
-                        <div class="stage-item @GetStageCss(_session.AllCommitmentsPublished)">
+                        <div class="stage-item @GetStageCss(session.AllCommitmentsPublished)">
                             <div class="stage-title">2. Commitments</div>
                             <div class="stage-desc">Все участники опубликовали commitments.</div>
                         </div>
 
-                        <div class="stage-item @GetStageCss(_session.AllNoncesRevealed)">
+                        <div class="stage-item @GetStageCss(session.AllNoncesRevealed)">
                             <div class="stage-title">3. Reveal Nonce</div>
                             <div class="stage-desc">Все участники раскрыли публичные nonce.</div>
                         </div>
 
-                        <div class="stage-item @GetStageCss(_session.AllPartialSignaturesSubmitted)">
+                        <div class="stage-item @GetStageCss(session.AllPartialSignaturesSubmitted)">
                             <div class="stage-title">4. Partial Signatures</div>
                             <div class="stage-desc">Все частичные подписи отправлены.</div>
                         </div>
 
-                        <div class="stage-item @GetStageCss(_session.SessionStatus == SessionStatus.Completed)">
+                        <div class="stage-item @GetStageCss(session.SessionStatus == SessionStatus.Completed)">
                             <div class="stage-title">5. Completed</div>
                             <div class="stage-desc">Итоговая агрегированная подпись сформирована.</div>
                         </div>
@@ -196,13 +267,12 @@
                         </button>
 
                         <button class="btn btn-outline-dark"
-                                disabled="@(_session.SessionStatus != SessionStatus.Completed || !_session.IsRuntimeStateAvailable)"
+                                disabled="@(session.SessionStatus != SessionStatus.Completed || !session.IsRuntimeStateAvailable)"
                                 @onclick="VerifyAsync">
                             Проверить итоговую подпись
                         </button>
-                        <button class="btn btn-outline-primary"
-                                disabled="@(_session is null)"
-                                @onclick="LoadReportAsync">
+
+                        <button class="btn btn-outline-primary" @onclick="LoadReportAsync">
                             Сформировать отчёт
                         </button>
 
@@ -237,22 +307,22 @@
                     <div class="signature-grid">
                         <div class="signature-box">
                             <div class="signature-label">Aggregate Nonce Point</div>
-                            <code>@(string.IsNullOrWhiteSpace(_session.AggregateNoncePointHex) ? "—" : _session.AggregateNoncePointHex)</code>
+                            <code>@(string.IsNullOrWhiteSpace(session.AggregateNoncePointHex) ? "—" : session.AggregateNoncePointHex)</code>
                         </div>
 
                         <div class="signature-box">
                             <div class="signature-label">Challenge</div>
-                            <code>@(string.IsNullOrWhiteSpace(_session.ChallengeHex) ? "—" : _session.ChallengeHex)</code>
+                            <code>@(string.IsNullOrWhiteSpace(session.ChallengeHex) ? "—" : session.ChallengeHex)</code>
                         </div>
 
                         <div class="signature-box">
                             <div class="signature-label">Aggregate Signature Nonce Point</div>
-                            <code>@(string.IsNullOrWhiteSpace(_session.AggregateSignatureNoncePointHex) ? "—" : _session.AggregateSignatureNoncePointHex)</code>
+                            <code>@(string.IsNullOrWhiteSpace(session.AggregateSignatureNoncePointHex) ? "—" : session.AggregateSignatureNoncePointHex)</code>
                         </div>
 
                         <div class="signature-box">
                             <div class="signature-label">Aggregate Signature Scalar</div>
-                            <code>@(string.IsNullOrWhiteSpace(_session.AggregateSignatureScalarHex) ? "—" : _session.AggregateSignatureScalarHex)</code>
+                            <code>@(string.IsNullOrWhiteSpace(session.AggregateSignatureScalarHex) ? "—" : session.AggregateSignatureScalarHex)</code>
                         </div>
                     </div>
                 </div>
@@ -314,7 +384,7 @@
                     </div>
 
                     <div class="participants-list">
-                        @foreach (var participant in _session.Participants)
+                        @foreach (var participant in session.Participants)
                         {
                             <div class="participant-card">
                                 <div class="participant-header">
@@ -386,7 +456,7 @@
     [SupplyParameterFromQuery(Name = "sessionId")]
     public Guid? QuerySessionId { get; set; }
 
-    private DevelopmentSeedApiResponse? _seed;
+    private EpochAdministrationStateApiResponse? _administrationState;
     private SessionStateApiResponse? _session;
     private ProtocolSessionReportApiResponse? _report;
     private string _message = "demo-protocol-session";
@@ -396,11 +466,28 @@
     private string? _verificationMessage;
     private bool? _isSignatureValid;
     private readonly List<Guid> _sessionHistory = new();
+    private readonly HashSet<Guid> _selectedParticipantIds = new();
     private Guid? _lastLoadedQuerySessionId;
+
+    private IReadOnlyList<EpochAdministrationParticipantApiResponse> ActiveEpochParticipants
+    {
+        get
+        {
+            if (_administrationState is null)
+                return Array.Empty<EpochAdministrationParticipantApiResponse>();
+
+            return _administrationState.Participants
+                .Where(x => x.ParticipantStatus == ParticipantStatus.Active &&
+                            x.IsActiveMemberOfActiveEpoch &&
+                            x.HasRuntimePrivateKeyMaterial)
+                .OrderBy(x => x.DisplayName, StringComparer.Ordinal)
+                .ToList();
+        }
+    }
 
     protected override async Task OnInitializedAsync()
     {
-        await LoadSeedAsync();
+        await LoadAdministrationStateAsync();
     }
 
     protected override async Task OnParametersSetAsync()
@@ -412,12 +499,16 @@
         }
     }
 
-    private async Task LoadSeedAsync()
+    private async Task LoadAdministrationStateAsync()
     {
         try
         {
             _error = null;
-            _seed = await ApiClient.GetSeedAsync();
+            _administrationState = await ApiClient.GetAdministrationStateAsync();
+            EnsureSelectedParticipantsAreValid();
+
+            if (_selectedParticipantIds.Count == 0)
+                SelectAllActiveEpochParticipants();
         }
         catch (Exception ex)
         {
@@ -427,7 +518,7 @@
 
     private async Task CreateSessionAsync()
     {
-        if (_seed is null)
+        if (_administrationState is null)
             return;
 
         try
@@ -435,11 +526,16 @@
             _error = null;
             _info = null;
 
+            var participantIds = _selectedParticipantIds.ToList();
+
+            if (participantIds.Count < 2)
+                throw new InvalidOperationException("At least two participants are required.");
+
             _session = await ApiClient.CreateProtocolSessionAsync(
                 new CreateProtocolSessionApiRequest
                 {
-                    EpochId = _seed.EpochId,
-                    ParticipantIds = _seed.ParticipantIds,
+                    EpochId = _administrationState.ActiveEpochId,
+                    ParticipantIds = participantIds,
                     Message = _message,
                     ProtectionMode = _selectedProtectionMode
                 });
@@ -590,6 +686,38 @@
         }
     }
 
+    private void ToggleParticipantSelection(Guid participantId, ChangeEventArgs args)
+    {
+        var isChecked = args.Value is bool value && value;
+
+        if (isChecked)
+            _selectedParticipantIds.Add(participantId);
+        else
+            _selectedParticipantIds.Remove(participantId);
+    }
+
+    private void SelectAllActiveEpochParticipants()
+    {
+        _selectedParticipantIds.Clear();
+
+        foreach (var participant in ActiveEpochParticipants)
+            _selectedParticipantIds.Add(participant.ParticipantId);
+    }
+
+    private void ClearSelectedParticipants()
+    {
+        _selectedParticipantIds.Clear();
+    }
+
+    private void EnsureSelectedParticipantsAreValid()
+    {
+        var allowedIds = ActiveEpochParticipants
+            .Select(x => x.ParticipantId)
+            .ToHashSet();
+
+        _selectedParticipantIds.RemoveWhere(x => !allowedIds.Contains(x));
+    }
+
     private string GetReportJsonUrl()
         => _session is null
             ? "#"
@@ -612,21 +740,21 @@
         => _session?.SessionId == sessionId;
 
     private bool CanPublishCommitment(SessionParticipantStateApiResponse participant)
-    => _session is not null
-       && _session.IsRuntimeStateAvailable
-       && !participant.HasCommitment;
+        => _session is not null
+           && _session.IsRuntimeStateAvailable
+           && !participant.HasCommitment;
 
     private bool CanRevealNonce(SessionParticipantStateApiResponse participant)
         => _session is not null
-        && _session.IsRuntimeStateAvailable
-        && _session.AllCommitmentsPublished
-        && !participant.HasReveal;
+           && _session.IsRuntimeStateAvailable
+           && _session.AllCommitmentsPublished
+           && !participant.HasReveal;
 
     private bool CanSubmitPartialSignature(SessionParticipantStateApiResponse participant)
         => _session is not null
-        && _session.IsRuntimeStateAvailable
-        && _session.AllNoncesRevealed
-        && !participant.HasPartialSignature;
+           && _session.IsRuntimeStateAvailable
+           && _session.AllNoncesRevealed
+           && !participant.HasPartialSignature;
 
     private static string GetStatusCss(SessionStatus status) => status switch
     {

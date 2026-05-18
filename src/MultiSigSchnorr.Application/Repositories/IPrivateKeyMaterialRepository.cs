@@ -12,4 +12,8 @@ public interface IPrivateKeyMaterialRepository
     Task<ScalarValue?> GetByParticipantIdAsync(
         Guid participantId,
         CancellationToken cancellationToken = default);
+
+    Task<bool> HasPrivateKeyMaterialAsync(
+        Guid participantId,
+        CancellationToken cancellationToken = default);
 }
