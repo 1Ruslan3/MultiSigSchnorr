@@ -57,6 +57,49 @@ public sealed class ProtocolSessionsApiClient
         return result ?? throw new InvalidOperationException("Administration state response was empty.");
     }
 
+    public async Task<EpochAdministrationStateApiResponse> CreateParticipantAsync(
+        string displayName,
+        CancellationToken cancellationToken = default)
+    {
+        using var response = await _httpClient.PostAsJsonAsync(
+            "api/admin/participants",
+            new CreateParticipantApiRequest { DisplayName = displayName },
+            cancellationToken);
+
+        await EnsureSuccessAsync(response, cancellationToken);
+
+        return await GetAdministrationStateAsync(cancellationToken);
+    }
+
+    public async Task<EpochAdministrationStateApiResponse> RenameParticipantAsync(
+        Guid participantId,
+        string displayName,
+        CancellationToken cancellationToken = default)
+    {
+        using var response = await _httpClient.PutAsJsonAsync(
+            $"api/admin/participants/{participantId}/display-name",
+            new RenameParticipantApiRequest { DisplayName = displayName },
+            cancellationToken);
+
+        await EnsureSuccessAsync(response, cancellationToken);
+
+        return await GetAdministrationStateAsync(cancellationToken);
+    }
+
+    public async Task<EpochAdministrationStateApiResponse> CreateEpochWithMembersAsync(
+        IReadOnlyList<Guid> participantIds,
+        CancellationToken cancellationToken = default)
+    {
+        using var response = await _httpClient.PostAsJsonAsync(
+            "api/admin/epochs/create-with-members",
+            new CreateEpochWithMembersApiRequest { ParticipantIds = participantIds },
+            cancellationToken);
+
+        await EnsureSuccessAsync(response, cancellationToken);
+
+        return await GetAdministrationStateAsync(cancellationToken);
+    }
+
     public async Task<IReadOnlyList<AuditLogItemApiResponse>> GetAuditLogAsync(
         int take = 100,
         string? search = null,
@@ -253,5 +296,18 @@ public sealed class ProtocolSessionsApiClient
         var result = await response.Content.ReadFromJsonAsync<EpochAdministrationStateApiResponse>(cancellationToken);
 
         return result ?? throw new InvalidOperationException("Administration state response was empty.");
+    }
+
+    private static async Task EnsureSuccessAsync(
+        HttpResponseMessage response,
+        CancellationToken cancellationToken)
+    {
+        if (response.IsSuccessStatusCode)
+            return;
+
+        var error = await response.Content.ReadAsStringAsync(cancellationToken);
+
+        throw new InvalidOperationException(
+            $"API request failed with status {(int)response.StatusCode}: {error}");
     }
 }

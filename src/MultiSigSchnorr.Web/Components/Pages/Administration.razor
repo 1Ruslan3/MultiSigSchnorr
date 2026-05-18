@@ -11,7 +11,7 @@
         <div>
             <h1>Administration</h1>
             <p class="admin-subtitle">
-                Управление активной эпохой и участниками: просмотр состава, отзыв участника и переход к следующей эпохе.
+                Управление участниками, активной эпохой и составом группы подписантов.
             </p>
         </div>
     </div>
@@ -60,14 +60,50 @@
                         </div>
                     </div>
 
+                    <div class="alert alert-info mt-3 mb-0">
+                        Чтобы изменить состав группы, выбери участников и создай новую эпоху.
+                        Уже созданные протокольные сессии не изменяются.
+                    </div>
+
                     <div class="action-row mt-3">
-                        <button class="btn btn-outline-secondary" @onclick="LoadAsync">
+                        <button class="btn btn-outline-secondary" @onclick="LoadAsync" disabled="@_isBusy">
                             Обновить
                         </button>
 
-                        <button class="btn btn-primary" @onclick="TransitionEpochAsync">
-                            Перейти к следующей эпохе
+                        <button class="btn btn-primary"
+                                @onclick="CreateEpochWithSelectedMembersAsync"
+                                disabled="@(_isBusy || _selectedParticipantIds.Count < 2)">
+                            Создать новую эпоху с выбранным составом
                         </button>
+                    </div>
+                </div>
+
+                <div class="admin-card">
+                    <div class="admin-card-header">
+                        <h3>Создание участника</h3>
+                    </div>
+
+                    <div class="form-block">
+                        <label for="new-participant-display-name">Имя участника</label>
+                        <input id="new-participant-display-name"
+                               class="form-control"
+                               placeholder="Например: Alice, Bob, Signer-4"
+                               @bind="_newParticipantDisplayName"
+                               @bind:event="oninput"
+                               disabled="@_isBusy" />
+                    </div>
+
+                    <div class="action-row mt-3">
+                        <button class="btn btn-primary"
+                                @onclick="CreateParticipantAsync"
+                                disabled="@(_isBusy || string.IsNullOrWhiteSpace(_newParticipantDisplayName))">
+                            Создать участника
+                        </button>
+                    </div>
+
+                    <div class="alert alert-warning mt-3 mb-0">
+                        Новый участник получает приватный ключ только в runtime-памяти API.
+                        После перезапуска API публичная запись останется в PostgreSQL, но private key material исчезнет.
                     </div>
                 </div>
 
@@ -80,7 +116,33 @@
                         <label for="revoke-reason">Причина отзыва</label>
                         <textarea id="revoke-reason"
                                   class="form-control admin-textarea"
-                                  @bind="_revokeReason"></textarea>
+                                  @bind="_revokeReason"
+                                  disabled="@_isBusy"></textarea>
+                    </div>
+                </div>
+
+                <div class="admin-card">
+                    <div class="admin-card-header">
+                        <h3>Выбор состава новой эпохи</h3>
+                    </div>
+
+                    <div class="action-column">
+                        <button class="btn btn-outline-secondary" @onclick="SelectOnlyActiveMembers" disabled="@_isBusy">
+                            Выбрать текущий состав
+                        </button>
+
+                        <button class="btn btn-outline-secondary" @onclick="SelectAllActiveParticipants" disabled="@_isBusy">
+                            Выбрать всех Active
+                        </button>
+
+                        <button class="btn btn-outline-secondary" @onclick="ClearSelectedParticipants" disabled="@_isBusy">
+                            Очистить выбор
+                        </button>
+                    </div>
+
+                    <div class="alert alert-secondary mt-3 mb-0">
+                        Выбрано участников: <strong>@_selectedParticipantIds.Count</strong>.
+                        Для новой эпохи нужно минимум 2 участника.
                     </div>
                 </div>
 
@@ -90,7 +152,7 @@
                     </div>
 
                     <div class="epoch-history-list">
-                        @foreach (var epoch in _state.Epochs)
+                        @foreach (var epoch in _state.Epochs.OrderByDescending(x => x.EpochNumber))
                         {
                             <div class="epoch-history-item">
                                 <div class="epoch-history-main">
@@ -113,7 +175,7 @@
                     </div>
 
                     <div class="participants-list">
-                        @foreach (var participant in _state.Participants)
+                        @foreach (var participant in _state.Participants.OrderBy(x => x.DisplayName))
                         {
                             <div class="participant-card">
                                 <div class="participant-header">
@@ -149,9 +211,33 @@
                                     </div>
                                 </div>
 
+                                <div class="form-block mt-3">
+                                    <label>Новое имя</label>
+                                    <input class="form-control"
+                                           value="@GetRenameValue(participant.ParticipantId, participant.DisplayName)"
+                                           @oninput="args => SetRenameValue(participant.ParticipantId, args.Value?.ToString() ?? string.Empty)"
+                                           disabled="@_isBusy" />
+                                </div>
+
                                 <div class="action-row mt-3">
+                                    <label class="member-select-row">
+                                        <input type="checkbox"
+                                               checked="@_selectedParticipantIds.Contains(participant.ParticipantId)"
+                                               disabled="@(_isBusy || participant.ParticipantStatus != ParticipantStatus.Active)"
+                                               @onchange="args => ToggleParticipantSelection(participant.ParticipantId, args)" />
+                                        <span>Включить в новую эпоху</span>
+                                    </label>
+                                </div>
+
+                                <div class="action-row mt-3">
+                                    <button class="btn btn-outline-primary"
+                                            disabled="@_isBusy"
+                                            @onclick="() => RenameParticipantAsync(participant.ParticipantId)">
+                                        Переименовать
+                                    </button>
+
                                     <button class="btn btn-outline-danger"
-                                            disabled="@(!participant.CanBeRevoked)"
+                                            disabled="@(_isBusy || !participant.CanBeRevoked)"
                                             @onclick="() => RevokeParticipantAsync(participant.ParticipantId)">
                                         Отозвать участника
                                     </button>
@@ -168,9 +254,14 @@
 @code
 {
     private EpochAdministrationStateApiResponse? _state;
+    private readonly HashSet<Guid> _selectedParticipantIds = new();
+    private readonly Dictionary<Guid, string> _renameInputs = new();
+
     private string? _error;
     private string? _info;
+    private string _newParticipantDisplayName = string.Empty;
     private string _revokeReason = "Administrative revocation";
+    private bool _isBusy;
 
     protected override async Task OnInitializedAsync()
     {
@@ -181,12 +272,81 @@
     {
         try
         {
+            _isBusy = true;
             _error = null;
+            _info = null;
+
             _state = await ApiClient.GetAdministrationStateAsync();
+
+            SyncRenameInputs();
+
+            if (_selectedParticipantIds.Count == 0)
+                SelectOnlyActiveMembers();
         }
         catch (Exception ex)
         {
             _error = ex.Message;
+        }
+        finally
+        {
+            _isBusy = false;
+        }
+    }
+
+    private async Task CreateParticipantAsync()
+    {
+        try
+        {
+            _isBusy = true;
+            _error = null;
+            _info = null;
+
+            var displayName = _newParticipantDisplayName.Trim();
+
+            if (string.IsNullOrWhiteSpace(displayName))
+                throw new InvalidOperationException("Display name cannot be empty.");
+
+            _state = await ApiClient.CreateParticipantAsync(displayName);
+            _newParticipantDisplayName = string.Empty;
+            _info = $"Участник '{displayName}' создан.";
+
+            SyncRenameInputs();
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+        }
+        finally
+        {
+            _isBusy = false;
+        }
+    }
+
+    private async Task RenameParticipantAsync(Guid participantId)
+    {
+        try
+        {
+            _isBusy = true;
+            _error = null;
+            _info = null;
+
+            var displayName = GetRenameValue(participantId, string.Empty).Trim();
+
+            if (string.IsNullOrWhiteSpace(displayName))
+                throw new InvalidOperationException("Display name cannot be empty.");
+
+            _state = await ApiClient.RenameParticipantAsync(participantId, displayName);
+            _info = "Участник переименован.";
+
+            SyncRenameInputs();
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+        }
+        finally
+        {
+            _isBusy = false;
         }
     }
 
@@ -194,30 +354,117 @@
     {
         try
         {
+            _isBusy = true;
             _error = null;
             _info = null;
+
             _state = await ApiClient.RevokeParticipantAsync(participantId, _revokeReason);
+            _selectedParticipantIds.Remove(participantId);
             _info = $"Участник '{participantId}' был отозван.";
+
+            SyncRenameInputs();
         }
         catch (Exception ex)
         {
             _error = ex.Message;
+        }
+        finally
+        {
+            _isBusy = false;
         }
     }
 
-    private async Task TransitionEpochAsync()
+    private async Task CreateEpochWithSelectedMembersAsync()
     {
         try
         {
+            _isBusy = true;
             _error = null;
             _info = null;
-            _state = await ApiClient.TransitionToNextEpochAsync();
-            _info = "Переход к следующей эпохе выполнен.";
+
+            if (_selectedParticipantIds.Count < 2)
+                throw new InvalidOperationException("At least two participants are required for a new epoch.");
+
+            _state = await ApiClient.CreateEpochWithMembersAsync(_selectedParticipantIds.ToList());
+            _info = "Новая эпоха с выбранным составом создана.";
+
+            _selectedParticipantIds.Clear();
+            SyncRenameInputs();
+            SelectOnlyActiveMembers();
         }
         catch (Exception ex)
         {
             _error = ex.Message;
         }
+        finally
+        {
+            _isBusy = false;
+        }
+    }
+
+    private void ToggleParticipantSelection(Guid participantId, ChangeEventArgs args)
+    {
+        var isChecked = args.Value is bool value && value;
+
+        if (isChecked)
+            _selectedParticipantIds.Add(participantId);
+        else
+            _selectedParticipantIds.Remove(participantId);
+    }
+
+    private void SelectOnlyActiveMembers()
+    {
+        _selectedParticipantIds.Clear();
+
+        if (_state is null)
+            return;
+
+        foreach (var participant in _state.Participants
+                     .Where(x => x.IsActiveMemberOfActiveEpoch &&
+                                 x.ParticipantStatus == ParticipantStatus.Active))
+        {
+            _selectedParticipantIds.Add(participant.ParticipantId);
+        }
+    }
+
+    private void SelectAllActiveParticipants()
+    {
+        _selectedParticipantIds.Clear();
+
+        if (_state is null)
+            return;
+
+        foreach (var participant in _state.Participants
+                     .Where(x => x.ParticipantStatus == ParticipantStatus.Active))
+        {
+            _selectedParticipantIds.Add(participant.ParticipantId);
+        }
+    }
+
+    private void ClearSelectedParticipants()
+    {
+        _selectedParticipantIds.Clear();
+    }
+
+    private void SyncRenameInputs()
+    {
+        if (_state is null)
+            return;
+
+        foreach (var participant in _state.Participants)
+            _renameInputs[participant.ParticipantId] = participant.DisplayName;
+    }
+
+    private string GetRenameValue(Guid participantId, string fallback)
+    {
+        return _renameInputs.TryGetValue(participantId, out var value)
+            ? value
+            : fallback;
+    }
+
+    private void SetRenameValue(Guid participantId, string value)
+    {
+        _renameInputs[participantId] = value;
     }
 
     private static string GetEpochStatusCss(EpochStatus status) => status switch

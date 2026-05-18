@@ -27,12 +27,16 @@ using MultiSigSchnorr.Infrastructure.Repositories;
 using MultiSigSchnorr.Protocol.Epochs;
 using MultiSigSchnorr.Protocol.Revocation;
 using MultiSigSchnorr.Protocol.Sessions;
+using MultiSigSchnorr.Application.UseCases.CreateEpochWithMembers;
+using MultiSigSchnorr.Application.UseCases.CreateParticipant;
+using MultiSigSchnorr.Application.UseCases.RenameParticipant;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddOpenApi();
+
 
 var connectionString = builder.Configuration.GetConnectionString("MultiSigSchnorrDb");
 
@@ -128,6 +132,9 @@ builder.Services.AddScoped<GetEpochAdministrationStateHandler>();
 builder.Services.AddScoped<RevokeParticipantInActiveEpochHandler>();
 builder.Services.AddScoped<TransitionToNextEpochHandler>();
 builder.Services.AddScoped<GetAuditLogHandler>();
+builder.Services.AddScoped<CreateParticipantHandler>();
+builder.Services.AddScoped<RenameParticipantHandler>();
+builder.Services.AddScoped<CreateEpochWithMembersHandler>();
 
 var app = builder.Build();
 
@@ -161,9 +168,6 @@ app.MapGet("/", async (DevelopmentDataSeeder dataSeeder, CancellationToken cance
         seeded = dataSeeder.Snapshot
     });
 });
-
-// Пока без https, чтобы не ловить бессмысленные предупреждения локально
-// app.UseHttpsRedirection();
 
 app.MapControllers();
 

@@ -21,6 +21,7 @@ public sealed class Participant
     {
         if (id == Guid.Empty)
             throw new ArgumentException("Participant id cannot be empty.", nameof(id));
+
         if (string.IsNullOrWhiteSpace(displayName))
             throw new ArgumentException("Display name cannot be empty.", nameof(displayName));
 
@@ -29,6 +30,14 @@ public sealed class Participant
         PublicKey = publicKey ?? throw new ArgumentNullException(nameof(publicKey));
         Status = status;
         CreatedUtc = createdUtc;
+    }
+
+    public void Rename(string displayName)
+    {
+        if (string.IsNullOrWhiteSpace(displayName))
+            throw new ArgumentException("Display name cannot be empty.", nameof(displayName));
+
+        DisplayName = displayName.Trim();
     }
 
     public void Activate()
@@ -47,5 +56,4 @@ public sealed class Participant
         Status = ParticipantStatus.Revoked;
         RevokedUtc = revokedUtc;
     }
-
 }
