@@ -1,6 +1,6 @@
 using System.Net;
 using System.Net.Http.Json;
-using MultiSigSchnorr.Contracts.Diagnostics;
+using MultiSigSchnorr.Contracts.Administration;
 using MultiSigSchnorr.Contracts.ProtocolSessions;
 using MultiSigSchnorr.Domain.Enums;
 
@@ -20,17 +20,18 @@ public sealed class ProtocolSessionsWorkflowTests : IClassFixture<MultiSigSchnor
     {
         using var client = _factory.CreateClient();
 
-        var seed = await GetRequiredAsync<DevelopmentSeedApiResponse>(
+        var signingGroup = await PrepareSigningGroupAsync(
             client,
-            "/api/system/seed");
+            participantsCount: 3,
+            displayNamePrefix: "Workflow-Randomized");
 
         var createdSession = await PostRequiredAsync<CreateProtocolSessionApiRequest, SessionStateApiResponse>(
             client,
             "/api/protocol-sessions",
             new CreateProtocolSessionApiRequest
             {
-                EpochId = seed.EpochId,
-                ParticipantIds = seed.ParticipantIds,
+                EpochId = signingGroup.EpochId,
+                ParticipantIds = signingGroup.ParticipantIds,
                 Message = "integration-test-session",
                 ProtectionMode = SignatureProtectionMode.RandomizedScalarProcessing
             });
@@ -39,7 +40,7 @@ public sealed class ProtocolSessionsWorkflowTests : IClassFixture<MultiSigSchnor
         Assert.Equal(SessionStatus.Created, createdSession.SessionStatus);
         Assert.Equal(SignatureProtectionMode.RandomizedScalarProcessing, createdSession.ProtectionMode);
 
-        foreach (var participantId in seed.ParticipantIds)
+        foreach (var participantId in signingGroup.ParticipantIds)
         {
             createdSession = await PostRequiredAsync<PublishCommitmentApiRequest, SessionStateApiResponse>(
                 client,
@@ -53,7 +54,7 @@ public sealed class ProtocolSessionsWorkflowTests : IClassFixture<MultiSigSchnor
         Assert.True(createdSession.AllCommitmentsPublished);
         Assert.Equal(SessionStatus.NonceRevealCollection, createdSession.SessionStatus);
 
-        foreach (var participantId in seed.ParticipantIds)
+        foreach (var participantId in signingGroup.ParticipantIds)
         {
             createdSession = await PostRequiredAsync<RevealNonceApiRequest, SessionStateApiResponse>(
                 client,
@@ -67,7 +68,7 @@ public sealed class ProtocolSessionsWorkflowTests : IClassFixture<MultiSigSchnor
         Assert.True(createdSession.AllNoncesRevealed);
         Assert.Equal(SessionStatus.PartialSignaturesCollection, createdSession.SessionStatus);
 
-        foreach (var participantId in seed.ParticipantIds)
+        foreach (var participantId in signingGroup.ParticipantIds)
         {
             createdSession = await PostRequiredAsync<SubmitPartialSignatureApiRequest, SessionStateApiResponse>(
                 client,
@@ -104,7 +105,7 @@ public sealed class ProtocolSessionsWorkflowTests : IClassFixture<MultiSigSchnor
         Assert.True(report.AllCommitmentsPublished);
         Assert.True(report.AllNoncesRevealed);
         Assert.True(report.AllPartialSignaturesSubmitted);
-        Assert.Equal(seed.ParticipantIds.Count, report.Participants.Count);
+        Assert.Equal(signingGroup.ParticipantIds.Count, report.Participants.Count);
 
         using var jsonFileResponse = await client.GetAsync(
             $"/api/protocol-sessions/{createdSession.SessionId}/report.json");
@@ -145,17 +146,18 @@ public sealed class ProtocolSessionsWorkflowTests : IClassFixture<MultiSigSchnor
     {
         using var client = _factory.CreateClient();
 
-        var seed = await GetRequiredAsync<DevelopmentSeedApiResponse>(
+        var signingGroup = await PrepareSigningGroupAsync(
             client,
-            "/api/system/seed");
+            participantsCount: 2,
+            displayNamePrefix: "Workflow-History");
 
         var createdSession = await PostRequiredAsync<CreateProtocolSessionApiRequest, SessionStateApiResponse>(
             client,
             "/api/protocol-sessions",
             new CreateProtocolSessionApiRequest
             {
-                EpochId = seed.EpochId,
-                ParticipantIds = seed.ParticipantIds,
+                EpochId = signingGroup.EpochId,
+                ParticipantIds = signingGroup.ParticipantIds,
                 Message = "history-test-session",
                 ProtectionMode = SignatureProtectionMode.Baseline
             });
@@ -164,8 +166,64 @@ public sealed class ProtocolSessionsWorkflowTests : IClassFixture<MultiSigSchnor
             client,
             "/api/protocol-sessions?take=50");
 
-        var entry = Assert.Single(history.Where(item => item.SessionId == createdSession.SessionId));
+        var entry = Assert.Single(history, item => item.SessionId == createdSession.SessionId);
         Assert.Equal(SignatureProtectionMode.Baseline, entry.ProtectionMode);
+    }
+
+    private static async Task<SigningGroup> PrepareSigningGroupAsync(
+        HttpClient client,
+        int participantsCount,
+        string displayNamePrefix)
+    {
+        var suffix = Guid.NewGuid().ToString("N")[..8];
+        var displayNames = Enumerable.Range(1, participantsCount)
+            .Select(index => $"{displayNamePrefix}-{suffix}-{index}")
+            .ToList();
+
+        foreach (var displayName in displayNames)
+        {
+            await PostNoContentAsync(
+                client,
+                "/api/admin/participants",
+                new CreateParticipantApiRequest { DisplayName = displayName });
+        }
+
+        var stateAfterCreate = await GetAdministrationStateAsync(client);
+
+        var participantIds = displayNames
+            .Select(displayName => Assert.Single(
+                stateAfterCreate.Participants,
+                participant => participant.DisplayName == displayName))
+            .Select(participant => participant.ParticipantId)
+            .ToList();
+
+        await PostNoContentAsync(
+            client,
+            "/api/admin/epochs/create-with-members",
+            new CreateEpochWithMembersApiRequest
+            {
+                ParticipantIds = participantIds
+            });
+
+        var stateAfterEpochCreate = await GetAdministrationStateAsync(client);
+        var activeMemberIds = stateAfterEpochCreate.Participants
+            .Where(participant => participant.IsActiveMemberOfActiveEpoch)
+            .Select(participant => participant.ParticipantId)
+            .ToHashSet();
+
+        Assert.All(participantIds, participantId => Assert.Contains(participantId, activeMemberIds));
+
+        return new SigningGroup(
+            stateAfterEpochCreate.ActiveEpochId,
+            participantIds);
+    }
+
+    private static async Task<EpochAdministrationStateApiResponse> GetAdministrationStateAsync(
+        HttpClient client)
+    {
+        return await GetRequiredAsync<EpochAdministrationStateApiResponse>(
+            client,
+            "/api/admin/epoch-management");
     }
 
     private static async Task<TResponse> GetRequiredAsync<TResponse>(
@@ -198,4 +256,18 @@ public sealed class ProtocolSessionsWorkflowTests : IClassFixture<MultiSigSchnor
 
         return payload!;
     }
+
+    private static async Task PostNoContentAsync<TRequest>(
+        HttpClient client,
+        string url,
+        TRequest request)
+    {
+        using var response = await client.PostAsJsonAsync(url, request);
+
+        Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
+    }
+
+    private sealed record SigningGroup(
+        Guid EpochId,
+        IReadOnlyList<Guid> ParticipantIds);
 }

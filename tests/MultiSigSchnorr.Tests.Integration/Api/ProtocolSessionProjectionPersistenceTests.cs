@@ -2,7 +2,7 @@ using System.Net;
 using System.Net.Http.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
-using MultiSigSchnorr.Contracts.Diagnostics;
+using MultiSigSchnorr.Contracts.Administration;
 using MultiSigSchnorr.Contracts.ProtocolSessions;
 using MultiSigSchnorr.Domain.Enums;
 using MultiSigSchnorr.Infrastructure.Persistence;
@@ -24,22 +24,23 @@ public sealed class ProtocolSessionProjectionPersistenceTests
     {
         using var client = _factory.CreateClient();
 
-        var seed = await GetRequiredAsync<DevelopmentSeedApiResponse>(
+        var signingGroup = await PrepareSigningGroupAsync(
             client,
-            "/api/system/seed");
+            participantsCount: 3,
+            displayNamePrefix: "Projection-Persistence");
 
         var session = await PostRequiredAsync<CreateProtocolSessionApiRequest, SessionStateApiResponse>(
             client,
             "/api/protocol-sessions",
             new CreateProtocolSessionApiRequest
             {
-                EpochId = seed.EpochId,
-                ParticipantIds = seed.ParticipantIds,
+                EpochId = signingGroup.EpochId,
+                ParticipantIds = signingGroup.ParticipantIds,
                 Message = "postgres-projection-integration-test",
                 ProtectionMode = SignatureProtectionMode.RandomizedScalarProcessing
             });
 
-        foreach (var participantId in seed.ParticipantIds)
+        foreach (var participantId in signingGroup.ParticipantIds)
         {
             session = await PostRequiredAsync<PublishCommitmentApiRequest, SessionStateApiResponse>(
                 client,
@@ -50,7 +51,7 @@ public sealed class ProtocolSessionProjectionPersistenceTests
                 });
         }
 
-        foreach (var participantId in seed.ParticipantIds)
+        foreach (var participantId in signingGroup.ParticipantIds)
         {
             session = await PostRequiredAsync<RevealNonceApiRequest, SessionStateApiResponse>(
                 client,
@@ -61,7 +62,7 @@ public sealed class ProtocolSessionProjectionPersistenceTests
                 });
         }
 
-        foreach (var participantId in seed.ParticipantIds)
+        foreach (var participantId in signingGroup.ParticipantIds)
         {
             session = await PostRequiredAsync<SubmitPartialSignatureApiRequest, SessionStateApiResponse>(
                 client,
@@ -90,7 +91,7 @@ public sealed class ProtocolSessionProjectionPersistenceTests
         Assert.NotNull(storedSession);
 
         Assert.Equal(session.SessionId, storedSession.SessionId);
-        Assert.Equal(seed.EpochId, storedSession.EpochId);
+        Assert.Equal(signingGroup.EpochId, storedSession.EpochId);
         Assert.Equal(SessionStatus.Completed.ToString(), storedSession.SessionStatus);
         Assert.Equal(SignatureProtectionMode.RandomizedScalarProcessing.ToString(), storedSession.ProtectionMode);
         Assert.Equal(session.MessageDigestHex, storedSession.MessageDigestHex);
@@ -103,7 +104,7 @@ public sealed class ProtocolSessionProjectionPersistenceTests
         Assert.True(storedSession.AllNoncesRevealed);
         Assert.True(storedSession.AllPartialSignaturesSubmitted);
 
-        Assert.Equal(seed.ParticipantIds.Count, storedSession.Participants.Count);
+        Assert.Equal(signingGroup.ParticipantIds.Count, storedSession.Participants.Count);
 
         foreach (var participant in storedSession.Participants)
         {
@@ -117,6 +118,62 @@ public sealed class ProtocolSessionProjectionPersistenceTests
             Assert.False(string.IsNullOrWhiteSpace(participant.PublicNoncePointHex));
             Assert.False(string.IsNullOrWhiteSpace(participant.PartialSignatureHex));
         }
+    }
+
+    private static async Task<SigningGroup> PrepareSigningGroupAsync(
+        HttpClient client,
+        int participantsCount,
+        string displayNamePrefix)
+    {
+        var suffix = Guid.NewGuid().ToString("N")[..8];
+        var displayNames = Enumerable.Range(1, participantsCount)
+            .Select(index => $"{displayNamePrefix}-{suffix}-{index}")
+            .ToList();
+
+        foreach (var displayName in displayNames)
+        {
+            await PostNoContentAsync(
+                client,
+                "/api/admin/participants",
+                new CreateParticipantApiRequest { DisplayName = displayName });
+        }
+
+        var stateAfterCreate = await GetAdministrationStateAsync(client);
+
+        var participantIds = displayNames
+            .Select(displayName => Assert.Single(
+                stateAfterCreate.Participants,
+                participant => participant.DisplayName == displayName))
+            .Select(participant => participant.ParticipantId)
+            .ToList();
+
+        await PostNoContentAsync(
+            client,
+            "/api/admin/epochs/create-with-members",
+            new CreateEpochWithMembersApiRequest
+            {
+                ParticipantIds = participantIds
+            });
+
+        var stateAfterEpochCreate = await GetAdministrationStateAsync(client);
+        var activeMemberIds = stateAfterEpochCreate.Participants
+            .Where(participant => participant.IsActiveMemberOfActiveEpoch)
+            .Select(participant => participant.ParticipantId)
+            .ToHashSet();
+
+        Assert.All(participantIds, participantId => Assert.Contains(participantId, activeMemberIds));
+
+        return new SigningGroup(
+            stateAfterEpochCreate.ActiveEpochId,
+            participantIds);
+    }
+
+    private static async Task<EpochAdministrationStateApiResponse> GetAdministrationStateAsync(
+        HttpClient client)
+    {
+        return await GetRequiredAsync<EpochAdministrationStateApiResponse>(
+            client,
+            "/api/admin/epoch-management");
     }
 
     private static async Task<TResponse> GetRequiredAsync<TResponse>(
@@ -149,4 +206,18 @@ public sealed class ProtocolSessionProjectionPersistenceTests
 
         return payload!;
     }
+
+    private static async Task PostNoContentAsync<TRequest>(
+        HttpClient client,
+        string url,
+        TRequest request)
+    {
+        using var response = await client.PostAsJsonAsync(url, request);
+
+        Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
+    }
+
+    private sealed record SigningGroup(
+        Guid EpochId,
+        IReadOnlyList<Guid> ParticipantIds);
 }

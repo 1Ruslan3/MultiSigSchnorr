@@ -32,15 +32,22 @@ public sealed class GroupManagementController : ControllerBase
         [FromBody] CreateParticipantApiRequest request,
         CancellationToken cancellationToken)
     {
-        await _createParticipantHandler.HandleAsync(
-            new CreateParticipantRequest
-            {
-                DisplayName = request.DisplayName
-            },
-            DateTime.UtcNow,
-            cancellationToken);
+        try
+        {
+            await _createParticipantHandler.HandleAsync(
+                new CreateParticipantRequest
+                {
+                    DisplayName = request.DisplayName
+                },
+                DateTime.UtcNow,
+                cancellationToken);
 
-        return NoContent();
+            return NoContent();
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or ArgumentException)
+        {
+            return BadRequest(new { error = ex.Message });
+        }
     }
 
     [HttpPut("participants/{participantId:guid}/display-name")]
@@ -49,15 +56,22 @@ public sealed class GroupManagementController : ControllerBase
         [FromBody] RenameParticipantApiRequest request,
         CancellationToken cancellationToken)
     {
-        await _renameParticipantHandler.HandleAsync(
-            new RenameParticipantRequest
-            {
-                ParticipantId = participantId,
-                DisplayName = request.DisplayName
-            },
-            cancellationToken);
+        try
+        {
+            await _renameParticipantHandler.HandleAsync(
+                new RenameParticipantRequest
+                {
+                    ParticipantId = participantId,
+                    DisplayName = request.DisplayName
+                },
+                cancellationToken);
 
-        return NoContent();
+            return NoContent();
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or ArgumentException)
+        {
+            return BadRequest(new { error = ex.Message });
+        }
     }
 
     [HttpPost("epochs/create-with-members")]
@@ -65,14 +79,21 @@ public sealed class GroupManagementController : ControllerBase
         [FromBody] CreateEpochWithMembersApiRequest request,
         CancellationToken cancellationToken)
     {
-        await _createEpochWithMembersHandler.HandleAsync(
-            new CreateEpochWithMembersRequest
-            {
-                ParticipantIds = request.ParticipantIds
-            },
-            DateTime.UtcNow,
-            cancellationToken);
+        try
+        {
+            await _createEpochWithMembersHandler.HandleAsync(
+                new CreateEpochWithMembersRequest
+                {
+                    ParticipantIds = request.ParticipantIds
+                },
+                DateTime.UtcNow,
+                cancellationToken);
 
-        return NoContent();
+            return NoContent();
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or ArgumentException)
+        {
+            return BadRequest(new { error = ex.Message });
+        }
     }
 }
