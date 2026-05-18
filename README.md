@@ -2,29 +2,47 @@
 
 ## Описание проекта
 
-`MultiSigSchnorr` — программная система для демонстрации и исследования протокола коллективной цифровой подписи на основе алгоритма Шнорра с использованием эллиптических кривых и рандомизированной обработки секретного скаляра.
+`MultiSigSchnorr` — программная система для демонстрации и исследования протокола коллективной цифровой подписи на основе алгоритма Шнорра с использованием эллиптических кривых, механизма эпох, управления составом группы подписантов и режима рандомизированной обработки секретного скаляра.
 
-Проект разрабатывается в рамках выпускной квалификационной работы и предназначен для демонстрации следующих возможностей:
+Проект реализует:
 
 - создание протокольной сессии коллективной подписи;
-- участие нескольких подписантов в одной подписи;
-- публикация commitment-значений;
-- раскрытие публичных nonce;
+- выбор подписантов из активной эпохи;
+- управление участниками и эпохами;
+- публикацию commitment-значений;
+- раскрытие public nonce;
 - формирование частичных подписей;
 - агрегирование частичных подписей;
-- проверка итоговой коллективной подписи;
-- сравнение базового режима и режима рандомизированной обработки скаляра;
-- ведение аудита ключевых действий;
+- проверку итоговой коллективной подписи;
+- аудит ключевых действий;
 - сохранение публичного состояния протокола в PostgreSQL;
-- просмотр состояния системы через Web-интерфейс.
+- Web-интерфейс для демонстрации.
 
-Проект реализован на платформе `.NET` с разделением на независимые слои: доменная модель, криптографические сервисы, протокольная логика, прикладные сценарии, инфраструктура хранения, API, Web-интерфейс, тесты и бенчмарки.
+---
+
+## Текущая рабочая среда
+
+Актуальная среда проекта:
+
+```text
+macOS
+zsh/bash
+Docker Desktop
+.NET SDK 10
+PostgreSQL через Docker Compose
+```
+
+Корень проекта:
+
+```bash
+~/Documents/GitHub/MultiSigSchnorr
+```
+
+Все команды ниже рассчитаны на macOS.
 
 ---
 
 ## Используемые технологии
-
-Основные технологии проекта:
 
 - C#;
 - .NET 10;
@@ -36,13 +54,12 @@
 - Npgsql Entity Framework Core Provider;
 - xUnit;
 - BenchmarkDotNet;
-- BouncyCastle.Cryptography.
+- BouncyCastle.Cryptography;
+- bash/zsh scripts.
 
 ---
 
 ## Структура solution
-
-Основные проекты находятся в каталоге `src`:
 
 ```text
 src
@@ -54,23 +71,16 @@ src
 ├── MultiSigSchnorr.Contracts
 ├── MultiSigSchnorr.Api
 └── MultiSigSchnorr.Web
-```
 
-Тестовые и исследовательские проекты находятся в каталоге `tests`:
-
-```text
 tests
 ├── MultiSigSchnorr.Tests.Unit
 ├── MultiSigSchnorr.Tests.Integration
 ├── MultiSigSchnorr.Tests.CryptoVectors
 └── MultiSigSchnorr.Benchmarks
-```
 
-Дополнительные каталоги:
-
-```text
 deploy  -> Docker Compose и инфраструктурные файлы
 docs    -> документация проекта
+scripts -> macOS shell-скрипты запуска, тестов и миграций
 ```
 
 ---
@@ -79,261 +89,190 @@ docs    -> документация проекта
 
 ### `MultiSigSchnorr.Domain`
 
-Содержит доменные сущности, перечисления и value object-типы:
-
-- участники;
-- эпохи;
-- членство участников в эпохах;
-- commitment-записи;
-- nonce reveal;
-- частичные подписи;
-- агрегированная подпись;
-- аудит;
-- статусы сессий и участников.
+Содержит доменные сущности, статусы и value object-типы: участников, эпохи, членство в эпохах, commitment, nonce reveal, частичные подписи, агрегированную подпись и аудит.
 
 ### `MultiSigSchnorr.Crypto`
 
-Содержит криптографические сервисы:
-
-- контекст эллиптической кривой P-256;
-- генерация открытого ключа;
-- агрегирование открытых ключей;
-- вычисление challenge;
-- хеширование;
-- генерация nonce;
-- вычисление частичной подписи;
-- проверка агрегированной подписи;
-- режим рандомизированной обработки секретного скаляра.
+Содержит криптографические сервисы: P-256 curve context, генерацию открытого ключа, агрегирование ключей, challenge, хеширование, nonce, частичную подпись и проверку агрегированной подписи.
 
 ### `MultiSigSchnorr.Protocol`
 
-Содержит протокольную логику:
-
-- создание N-party протокольной сессии;
-- публикация commitments;
-- раскрытие nonce;
-- отправка partial signatures;
-- формирование агрегированной подписи;
-- проверка участия в активной эпохе;
-- отзыв участников;
-- переход между эпохами.
+Содержит протокольную логику коллективной подписи: создание сессии, commitment, reveal nonce, partial signatures, aggregate signature и verification.
 
 ### `MultiSigSchnorr.Application`
 
-Содержит прикладные сценарии:
-
-- создание протокольной сессии;
-- получение состояния сессии;
-- публикация commitment;
-- reveal nonce;
-- submit partial signature;
-- экспорт отчёта;
-- получение истории сессий;
-- аудит;
-- администрирование эпох и участников.
+Содержит use cases: создание сессии, выполнение этапов протокола, история, отчёты, аудит, администрирование участников и эпох.
 
 ### `MultiSigSchnorr.Infrastructure`
 
-Содержит инфраструктурные реализации:
-
-- in-memory репозитории;
-- PostgreSQL/EF Core DbContext;
-- PostgreSQL-репозитории;
-- persistence-модели;
-- миграции EF Core.
+Содержит in-memory репозитории, PostgreSQL-репозитории, EF Core DbContext, persistence entities и миграции.
 
 ### `MultiSigSchnorr.Contracts`
 
-Содержит DTO-модели для обмена между API и Web-клиентом.
+Содержит DTO-модели API и Web-клиента.
 
 ### `MultiSigSchnorr.Api`
 
-ASP.NET Core Web API. Предоставляет endpoints для:
-
-- протокольных сессий;
-- системной диагностики;
-- seed-данных;
-- администрирования;
-- аудита;
-- отчётов.
+ASP.NET Core Web API.
 
 ### `MultiSigSchnorr.Web`
 
-Web-интерфейс для демонстрации работы системы.
+Blazor Web-интерфейс для демонстрации работы системы.
 
 ---
 
-## PostgreSQL через Docker
+## Быстрый запуск на macOS
 
-PostgreSQL запускается через Docker Compose.
+Перейти в корень проекта:
 
-Файл:
-
-```text
-deploy/docker-compose.postgres.yml
+```bash
+cd ~/Documents/GitHub/MultiSigSchnorr
 ```
 
-Используется контейнер:
+Сделать shell-скрипты исполняемыми:
+
+```bash
+chmod +x scripts/*.sh
+```
+
+Запустить PostgreSQL:
+
+```bash
+./scripts/start-postgres.sh
+```
+
+Применить миграции:
+
+```bash
+./scripts/apply-migrations.sh
+```
+
+Запустить API:
+
+```bash
+./scripts/run-api.sh
+```
+
+Во втором терминале запустить Web:
+
+```bash
+cd ~/Documents/GitHub/MultiSigSchnorr
+./scripts/run-web.sh
+```
+
+Открыть:
+
+```text
+http://localhost:5080/system-overview
+```
+
+---
+
+## Ручные команды без скриптов
+
+PostgreSQL:
+
+```bash
+docker compose -f deploy/docker-compose.postgres.yml up -d
+```
+
+API:
+
+```bash
+dotnet run --project src/MultiSigSchnorr.Api/MultiSigSchnorr.Api.csproj
+```
+
+Web:
+
+```bash
+dotnet run --project src/MultiSigSchnorr.Web/MultiSigSchnorr.Web.csproj
+```
+
+---
+
+## PostgreSQL
+
+Контейнер:
 
 ```text
 multisig-postgres
 ```
 
-Параметры базы данных:
+Параметры:
 
 ```text
 Database: multisig_schnorr
 User:     multisig_user
 Password: multisig_password
+Host:     localhost
 Port:     5433
 ```
 
-Порт `5433` используется на стороне Windows-хоста, чтобы не конфликтовать с возможной локальной установкой PostgreSQL на стандартном порту `5432`.
+Открыть psql:
 
----
-
-## Запуск PostgreSQL
-
-Из корня проекта:
-
-```powershell
-cd C:\Users\user\Desktop\diplom\MultiSigSchnorr
-
-docker compose -f .\deploy\docker-compose.postgres.yml up -d
+```bash
+./scripts/open-psql.sh
 ```
 
-Проверка контейнера:
-
-```powershell
-docker ps
-```
-
-Просмотр логов:
-
-```powershell
-docker logs multisig-postgres
-```
-
-Остановка PostgreSQL:
-
-```powershell
-docker compose -f .\deploy\docker-compose.postgres.yml down
-```
-
-Остановка с удалением данных:
-
-```powershell
-docker compose -f .\deploy\docker-compose.postgres.yml down -v
-```
-
-Команда `down -v` удаляет Docker volume с данными PostgreSQL. Использовать только если нужно полностью очистить базу.
-
----
-
-## Строка подключения
-
-Для локального запуска API используется connection string:
-
-```json
-{
-  "ConnectionStrings": {
-    "MultiSigSchnorrDb": "Host=localhost;Port=5433;Database=multisig_schnorr;Username=multisig_user;Password=multisig_password"
-  }
-}
-```
-
-Файл настройки:
-
-```text
-src\MultiSigSchnorr.Api\appsettings.Development.json
-```
-
----
-
-## Миграции EF Core
-
-Создание миграции:
-
-```powershell
-dotnet ef migrations add MigrationName `
-  --project .\src\MultiSigSchnorr.Infrastructure\MultiSigSchnorr.Infrastructure.csproj `
-  --startup-project .\src\MultiSigSchnorr.Api\MultiSigSchnorr.Api.csproj `
-  --context MultiSigSchnorrDbContext `
-  --output-dir Persistence\Migrations
-```
-
-Применение миграций:
-
-```powershell
-dotnet ef database update `
-  --project .\src\MultiSigSchnorr.Infrastructure\MultiSigSchnorr.Infrastructure.csproj `
-  --startup-project .\src\MultiSigSchnorr.Api\MultiSigSchnorr.Api.csproj `
-  --context MultiSigSchnorrDbContext
-```
-
-Просмотр списка миграций:
-
-```powershell
-dotnet ef migrations list `
-  --project .\src\MultiSigSchnorr.Infrastructure\MultiSigSchnorr.Infrastructure.csproj `
-  --startup-project .\src\MultiSigSchnorr.Api\MultiSigSchnorr.Api.csproj `
-  --context MultiSigSchnorrDbContext
-```
-
----
-
-## Проверка таблиц PostgreSQL
-
-Подключение к базе внутри контейнера:
-
-```powershell
-docker exec -it multisig-postgres psql -U multisig_user -d multisig_schnorr
-```
-
-Просмотр таблиц:
+Проверить таблицы:
 
 ```sql
 \dt
 ```
 
-Ожидаемые таблицы:
+---
 
-```text
-__EFMigrationsHistory
-audit_log_entries
-epochs
-participants
-epoch_members
-protocol_sessions
-protocol_session_participants
+## EF Core migrations
+
+Применить миграции:
+
+```bash
+./scripts/apply-migrations.sh
 ```
 
-Выход из `psql`:
+Создать миграцию:
 
-```sql
-\q
+```bash
+./scripts/add-migration.sh MigrationName
+```
+
+Посмотреть миграции:
+
+```bash
+./scripts/list-migrations.sh
 ```
 
 ---
 
-## Запуск API
+## Основные адреса
 
-Из корня проекта:
-
-```powershell
-dotnet run --project .\src\MultiSigSchnorr.Api\MultiSigSchnorr.Api.csproj
-```
-
-По умолчанию API доступен по адресу:
+API:
 
 ```text
 http://localhost:5227
 ```
 
-Основные endpoints:
+Web:
 
 ```text
-GET  /
+http://localhost:5080
+```
+
+Основные страницы Web:
+
+```text
+/system-overview
+/administration
+/protocol-sessions
+/protocol-session-history
+/audit-log
+```
+
+---
+
+## Основные endpoints
+
+```text
 GET  /api/system/seed
 GET  /api/system/storage
 GET  /api/protocol-sessions
@@ -344,142 +283,117 @@ POST /api/protocol-sessions/{id}/reveals
 POST /api/protocol-sessions/{id}/partial-signatures
 POST /api/protocol-sessions/{id}/verify
 GET  /api/protocol-sessions/{id}/report
-GET  /api/protocol-sessions/{id}/report.json
-GET  /api/protocol-sessions/{id}/report.txt
 GET  /api/admin/epoch-management
-POST /api/admin/participants/{id}/revoke
-POST /api/admin/epochs/transition
+POST /api/admin/participants
+PUT  /api/admin/participants/{participantId}/display-name
+POST /api/admin/participants/{participantId}/revoke
+POST /api/admin/epochs/create-with-members
 GET  /api/audit
 ```
 
 ---
 
-## Запуск Web-интерфейса
+## Управление составом группы
 
-Из корня проекта:
-
-```powershell
-dotnet run --project .\src\MultiSigSchnorr.Web\MultiSigSchnorr.Web.csproj
-```
-
-Web-интерфейс доступен по адресу:
+Состав группы регулируется через механизм эпох:
 
 ```text
-http://localhost:5080
+Participant     -> участник системы
+Epoch           -> актуальная конфигурация группы
+EpochMember     -> членство участника в эпохе
+ProtocolSession -> сессия подписи, созданная по активной эпохе
 ```
 
-Основные страницы:
+Правильный порядок изменения состава группы:
 
 ```text
-/system-overview
-/protocol-sessions
-/protocol-session-history
-/administration
-/audit-log
+1. Создать участника.
+2. При необходимости переименовать участника.
+3. Выбрать участников для новой эпохи.
+4. Создать новую активную эпоху с выбранным составом.
+5. Создавать новые протокольные сессии уже по новой эпохе.
+```
+
+Старые сессии не изменяются, потому что их состав влияет на aggregate public key, challenge и итоговую подпись.
+
+---
+
+## Runtime private key readiness
+
+В PostgreSQL не сохраняются приватные ключи участников.
+
+```text
+Participant/PublicKey -> PostgreSQL
+PrivateKeyMaterial    -> InMemory
+SecretNonce           -> runtime
+```
+
+После перезапуска API пользовательские участники остаются в PostgreSQL, но их runtime private key material исчезает. Поэтому система использует признак:
+
+```text
+HasRuntimePrivateKeyMaterial
+```
+
+Участник доступен для подписи только если:
+
+```text
+ParticipantStatus == Active
+IsActiveMemberOfActiveEpoch == true
+HasRuntimePrivateKeyMaterial == true
 ```
 
 ---
 
-## Сборка проекта
+## Запуск тестов
 
-Из корня проекта:
+Unit-тесты:
 
-```powershell
-dotnet restore
-dotnet build
+```bash
+dotnet test tests/MultiSigSchnorr.Tests.Unit/MultiSigSchnorr.Tests.Unit.csproj
 ```
 
----
+Integration-тесты:
 
-## Запуск unit-тестов
-
-```powershell
-dotnet test .\tests\MultiSigSchnorr.Tests.Unit\MultiSigSchnorr.Tests.Unit.csproj
+```bash
+./scripts/start-postgres.sh
+dotnet test tests/MultiSigSchnorr.Tests.Integration/MultiSigSchnorr.Tests.Integration.csproj
 ```
 
----
+Crypto-vector тесты:
 
-## Запуск integration-тестов
-
-Перед запуском integration-тестов должен быть запущен PostgreSQL:
-
-```powershell
-docker compose -f .\deploy\docker-compose.postgres.yml up -d
+```bash
+dotnet test tests/MultiSigSchnorr.Tests.CryptoVectors/MultiSigSchnorr.Tests.CryptoVectors.csproj
 ```
 
-Затем:
+Все тесты:
 
-```powershell
-dotnet test .\tests\MultiSigSchnorr.Tests.Integration\MultiSigSchnorr.Tests.Integration.csproj
+```bash
+./scripts/test-all.sh
 ```
 
----
+Полная проверка сборки и тестов:
 
-## Запуск crypto-vector тестов
-
-```powershell
-dotnet test .\tests\MultiSigSchnorr.Tests.CryptoVectors\MultiSigSchnorr.Tests.CryptoVectors.csproj
+```bash
+./scripts/build-and-test.sh
 ```
 
 ---
 
 ## Запуск бенчмарков
 
-Бенчмарки запускаются в Release-конфигурации:
-
-```powershell
-dotnet run --project .\tests\MultiSigSchnorr.Benchmarks\MultiSigSchnorr.Benchmarks.csproj -c Release
+```bash
+./scripts/run-benchmarks.sh
 ```
 
-Результаты BenchmarkDotNet сохраняются в каталоге:
+или вручную:
 
-```text
-tests\MultiSigSchnorr.Benchmarks\BenchmarkDotNet.Artifacts
-```
-
----
-
-## Режимы защиты
-
-В проекте реализованы два режима:
-
-### `Baseline`
-
-Базовый режим выполнения операций с секретным скаляром.
-
-### `RandomizedScalarProcessing`
-
-Режим, в котором секретный скаляр обрабатывается через рандомизированное преобразование. Цель режима — повысить устойчивость обработки секретного материала к отдельным классам атак, связанных с анализом вычислительных зависимостей.
-
-В Web-интерфейсе режим выбирается при создании протокольной сессии.
-
----
-
-## Протокольный цикл
-
-Общий цикл работы коллективной подписи:
-
-```text
-1. Создание протокольной сессии.
-2. Публикация commitment каждым участником.
-3. Раскрытие public nonce каждым участником.
-4. Вычисление challenge.
-5. Формирование partial signature каждым участником.
-6. Агрегирование частичных подписей.
-7. Проверка итоговой collective signature.
-```
-
-В Web-интерфейсе эти этапы выполняются последовательно на странице:
-
-```text
-/protocol-sessions
+```bash
+dotnet run --project tests/MultiSigSchnorr.Benchmarks/MultiSigSchnorr.Benchmarks.csproj -c Release
 ```
 
 ---
 
 ## Что сохраняется в PostgreSQL
-
-В PostgreSQL сохраняются:
 
 - эпохи;
 - участники;
@@ -498,185 +412,43 @@ tests\MultiSigSchnorr.Benchmarks\BenchmarkDotNet.Artifacts
 
 ## Что не сохраняется в PostgreSQL
 
-В PostgreSQL принципиально не сохраняются:
-
 - приватные ключи участников;
 - secret nonce;
 - runtime-состояние незавершённой протокольной сессии.
 
-Это сделано намеренно. Система сохраняет публичное и отчётное состояние, но не превращает базу данных в хранилище секретных материалов.
-
-После перезапуска API завершённые сессии доступны для просмотра и экспорта отчётов, но незавершённую runtime-сессию продолжить нельзя.
+Это сделано намеренно: PostgreSQL хранит публичное и отчётное состояние, но не секретные криптографические материалы.
 
 ---
 
-## Текущее состояние persistence
+## Документация
 
 ```text
-AuditLog                       -> PostgreSQL
-Epoch                          -> PostgreSQL
-Participant                    -> PostgreSQL
-EpochMember                    -> PostgreSQL
-ProtocolSession public history -> PostgreSQL projection
-
-ProtocolSession runtime        -> InMemory
-PrivateKeyMaterial             -> InMemory
-SecretNonce                    -> не сохраняется
-```
-
----
-
-## Диагностика хранилища
-
-Для диагностики PostgreSQL используется endpoint:
-
-```text
-GET /api/system/storage
-```
-
-Он показывает:
-
-- тип хранилища;
-- provider EF Core;
-- состояние подключения;
-- количество применённых миграций;
-- последнюю миграцию;
-- количество эпох;
-- количество участников;
-- количество записей аудита;
-- количество протокольных сессий;
-- количество участников протокольных сессий.
-
-Эти данные отображаются на странице:
-
-```text
-/system-overview
+docs/ARCHITECTURE.md
+docs/DATABASE.md
+docs/DEMO_SCENARIO.md
 ```
 
 ---
 
 ## Демонстрационный сценарий
 
-Краткий сценарий демонстрации:
-
-1. Запустить PostgreSQL через Docker Compose.
-2. Запустить API.
-3. Запустить Web.
-4. Открыть страницу `/system-overview`.
-5. Проверить блок PostgreSQL diagnostics.
-6. Перейти на `/protocol-sessions`.
-7. Создать протокольную сессию.
-8. Выбрать режим `RandomizedScalarProcessing`.
-9. Пройти этапы:
-   - Publish Commitment;
-   - Reveal Nonce;
-   - Submit Partial Signature.
-10. Проверить итоговую подпись.
-11. Сформировать отчёт.
-12. Открыть историю сессий.
-13. Открыть журнал аудита.
-14. Перезапустить API и убедиться, что история и отчёты сохраняются через PostgreSQL-проекцию.
-
-Подробный сценарий находится в файле:
+Кратко:
 
 ```text
-docs\DEMO_SCENARIO.md
+1. ./scripts/start-postgres.sh
+2. ./scripts/apply-migrations.sh
+3. ./scripts/run-api.sh
+4. ./scripts/run-web.sh
+5. Открыть /system-overview.
+6. Открыть /administration.
+7. Создать/выбрать участников.
+8. Создать новую эпоху.
+9. Открыть /protocol-sessions.
+10. Создать сессию и пройти протокол подписи.
+11. Проверить итоговую подпись.
+12. Сформировать отчёт.
+13. Открыть /protocol-session-history.
+14. Открыть /audit-log.
 ```
 
----
-
-## Документация
-
-Дополнительная документация находится в каталоге `docs`:
-
-```text
-docs\ARCHITECTURE.md
-docs\DATABASE.md
-docs\DEMO_SCENARIO.md
-```
-
-### `ARCHITECTURE.md`
-
-Описание архитектуры проекта, слоёв solution и взаимодействия между ними.
-
-### `DATABASE.md`
-
-Описание PostgreSQL-хранилища, таблиц, ограничений и persistence-подхода.
-
-### `DEMO_SCENARIO.md`
-
-Пошаговый сценарий демонстрации проекта на защите.
-
----
-
-## Назначение проекта в рамках ВКР
-
-Проект демонстрирует практическую реализацию ресурсно-эффективного протокола коллективной цифровой подписи на основе алгоритма Шнорра с использованием рандомизированной обработки секретного скаляра.
-
-Реализация позволяет показать:
-
-- математическую основу протокола;
-- структуру многоучастниковой подписи;
-- практический backend-контур;
-- Web-интерфейс для демонстрации;
-- хранение публичного состояния протокола;
-- аудит действий;
-- экспериментальную оценку накладных расходов защитного режима.
-
----
-
-## Рекомендуемый порядок запуска
-
-Для обычной демонстрации:
-
-```powershell
-cd C:\Users\user\Desktop\diplom\MultiSigSchnorr
-docker compose -f .\deploy\docker-compose.postgres.yml up -d
-dotnet run --project .\src\MultiSigSchnorr.Api\MultiSigSchnorr.Api.csproj
-```
-
-В отдельном окне PowerShell:
-
-```powershell
-cd C:\Users\user\Desktop\diplom\MultiSigSchnorr
-dotnet run --project .\src\MultiSigSchnorr.Web\MultiSigSchnorr.Web.csproj
-```
-
-После запуска открыть:
-
-```text
-http://localhost:5080/system-overview
-```
-
----
-
-## Рекомендуемый порядок проверки перед защитой
-
-```powershell
-dotnet restore
-dotnet build
-dotnet test .\tests\MultiSigSchnorr.Tests.Unit\MultiSigSchnorr.Tests.Unit.csproj
-dotnet test .\tests\MultiSigSchnorr.Tests.Integration\MultiSigSchnorr.Tests.Integration.csproj
-dotnet test .\tests\MultiSigSchnorr.Tests.CryptoVectors\MultiSigSchnorr.Tests.CryptoVectors.csproj
-```
-
-Для бенчмарков:
-
-```powershell
-dotnet run --project .\tests\MultiSigSchnorr.Benchmarks\MultiSigSchnorr.Benchmarks.csproj -c Release
-```
-
----
-
-## Ключевая идея реализации
-
-Главная идея реализации заключается в разделении публичного и секретного состояния:
-
-```text
-Публичное состояние протокола -> PostgreSQL
-Секретное runtime-состояние   -> память процесса
-```
-
-Такой подход позволяет сохранять историю, отчёты и аудит, но не хранить приватные ключи и secret nonce в базе данных.
-
-Это важно для демонстрации того, что проект учитывает не только функциональность, но и требования безопасности криптографической системы.
+Подробности находятся в `docs/DEMO_SCENARIO.md`.

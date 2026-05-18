@@ -1,57 +1,47 @@
-# Демонстрационный сценарий MultiSigSchnorr
+# Демонстрационный сценарий MultiSigSchnorr на macOS
 
-## Назначение сценария
+## Назначение
 
-Данный документ описывает последовательность действий для демонстрации программной системы `MultiSigSchnorr`.
+Документ описывает последовательность действий для демонстрации проекта `MultiSigSchnorr` на macOS.
 
-Сценарий предназначен для защиты выпускной квалификационной работы и показывает:
+Сценарий показывает:
 
-- запуск инфраструктуры;
-- работу API;
-- работу Web-интерфейса;
-- создание коллективной подписи;
-- прохождение этапов протокола;
+- запуск PostgreSQL через Docker;
+- запуск API и Web;
+- диагностику хранилища;
+- управление участниками и эпохами;
+- создание протокольной сессии;
+- полный цикл коллективной подписи;
 - проверку итоговой подписи;
-- сохранение публичного состояния в PostgreSQL;
-- аудит действий;
-- просмотр отчётных данных.
+- отчётность, историю и аудит.
 
 ---
 
-## Предварительные требования
+## 1. Подготовка
 
-На компьютере должны быть установлены:
+Перейти в корень проекта:
 
-- .NET SDK 10;
-- Docker Desktop;
-- PowerShell;
-- браузер для открытия Web-интерфейса.
+```bash
+cd ~/Documents/GitHub/MultiSigSchnorr
+```
 
-PostgreSQL запускается через Docker Compose. Устанавливать PostgreSQL напрямую в Windows не требуется.
+Сделать скрипты исполняемыми:
 
----
-
-## 1. Переход в каталог проекта
-
-Открыть PowerShell и перейти в каталог проекта:
-
-```powershell
-cd C:\Users\user\Desktop\diplom\MultiSigSchnorr
+```bash
+chmod +x scripts/*.sh
 ```
 
 ---
 
 ## 2. Запуск PostgreSQL
 
-Запустить PostgreSQL через Docker Compose:
-
-```powershell
-docker compose -f .\deploy\docker-compose.postgres.yml up -d
+```bash
+./scripts/start-postgres.sh
 ```
 
-Проверить, что контейнер запущен:
+Проверить контейнер:
 
-```powershell
+```bash
 docker ps
 ```
 
@@ -61,41 +51,29 @@ docker ps
 multisig-postgres
 ```
 
-При необходимости посмотреть логи:
+---
 
-```powershell
-docker logs multisig-postgres
+## 3. Применение миграций
+
+```bash
+./scripts/apply-migrations.sh
 ```
 
 ---
 
-## 3. Проверка базы данных
+## 4. Проверка PostgreSQL
 
-Подключиться к PostgreSQL внутри контейнера:
-
-```powershell
-docker exec -it multisig-postgres psql -U multisig_user -d multisig_schnorr
+```bash
+./scripts/open-psql.sh
 ```
 
-Проверить список таблиц:
+Внутри psql:
 
 ```sql
 \dt
 ```
 
-Ожидаемые таблицы:
-
-```text
-__EFMigrationsHistory
-audit_log_entries
-epochs
-participants
-epoch_members
-protocol_sessions
-protocol_session_participants
-```
-
-Выйти из `psql`:
+Выйти:
 
 ```sql
 \q
@@ -103,39 +81,39 @@ protocol_session_participants
 
 ---
 
-## 4. Запуск API
+## 5. Запуск API
 
-В отдельном окне PowerShell из корня проекта выполнить:
+В отдельном терминале:
 
-```powershell
-dotnet run --project .\src\MultiSigSchnorr.Api\MultiSigSchnorr.Api.csproj
+```bash
+cd ~/Documents/GitHub/MultiSigSchnorr
+./scripts/run-api.sh
 ```
 
-Ожидаемый адрес API:
+API должен быть доступен по адресу:
 
 ```text
 http://localhost:5227
 ```
 
-Проверить в браузере:
+Проверка:
 
-```text
-http://localhost:5227
+```bash
+curl http://localhost:5227
 ```
-
-Ожидается JSON-ответ с информацией о сервисе, доступных маршрутах и состоянии seed-данных.
 
 ---
 
-## 5. Запуск Web-интерфейса
+## 6. Запуск Web
 
-В новом окне PowerShell из корня проекта выполнить:
+Во втором терминале:
 
-```powershell
-dotnet run --project .\src\MultiSigSchnorr.Web\MultiSigSchnorr.Web.csproj
+```bash
+cd ~/Documents/GitHub/MultiSigSchnorr
+./scripts/run-web.sh
 ```
 
-Открыть Web-интерфейс:
+Web-интерфейс:
 
 ```text
 http://localhost:5080
@@ -143,59 +121,72 @@ http://localhost:5080
 
 ---
 
-## 6. Проверка System Overview
+## 7. System Overview
 
-Открыть страницу:
+Открыть:
 
 ```text
 http://localhost:5080/system-overview
 ```
 
-На странице должны отображаться:
+Показать:
 
-- активная эпоха;
-- seed-участники;
-- публичные ключи участников;
+- активную эпоху;
+- seed-участников;
 - PostgreSQL diagnostics;
-- количество записей в таблицах;
-- количество применённых миграций;
-- последняя миграция;
-- состояние подключения к БД.
-
-Особое внимание при демонстрации:
-
-```text
-Connection: Connected
-Storage Provider: PostgreSQL + EF Core
-```
-
-Этот блок показывает, что система использует PostgreSQL, а не только in-memory хранение.
+- состояние подключения;
+- количество миграций;
+- количество записей в таблицах.
 
 ---
 
-## 7. Создание протокольной сессии
+## 8. Управление группой
 
-Открыть страницу:
+Открыть:
+
+```text
+http://localhost:5080/administration
+```
+
+Показать:
+
+- список участников;
+- статусы участников;
+- runtime key readiness;
+- текущую активную эпоху;
+- историю эпох.
+
+Демонстрационные действия:
+
+```text
+1. Создать нового участника.
+2. Переименовать участника.
+3. Выбрать несколько участников с Runtime key ready.
+4. Создать новую эпоху с выбранным составом.
+5. Убедиться, что номер активной эпохи увеличился.
+```
+
+---
+
+## 9. Создание протокольной сессии
+
+Открыть:
 
 ```text
 http://localhost:5080/protocol-sessions
 ```
 
-На странице отображаются:
+Показать:
 
-- активная эпоха;
-- список seed-участников;
-- поле сообщения;
-- выбор режима защиты;
-- кнопка создания протокольной сессии.
+- активную эпоху;
+- доступных участников активной эпохи;
+- выбор подписантов;
+- режим защиты;
+- поле сообщения.
 
-В поле сообщения можно оставить значение:
+Выбрать минимум двух участников.
 
-```text
-demo-protocol-session
-```
-
-В режиме защиты выбрать:
+Режим защиты:
 
 ```text
 RandomizedScalarProcessing
@@ -207,97 +198,66 @@ RandomizedScalarProcessing
 Создать протокольную сессию
 ```
 
-После создания должна появиться карточка сессии:
-
-- Session ID;
-- Epoch ID;
-- Protection Mode;
-- Message Digest;
-- Aggregate Public Key;
-- список участников;
-- состояние этапов протокола.
-
 ---
 
-## 8. Этап 1: Publish Commitment
+## 10. Этап commitment
 
-Для каждого участника нажать кнопку:
+Для каждого выбранного участника нажать:
 
 ```text
 Publish Commitment
 ```
 
-После публикации commitment у каждого участника должен появиться признак успешного выполнения commitment-этапа.
-
-После публикации commitment всеми участниками флаг:
+После выполнения у всех участников должно быть:
 
 ```text
-All Commitments Published
+HasCommitment = true
+AllCommitmentsPublished = true
 ```
-
-должен стать `true`.
 
 ---
 
-## 9. Этап 2: Reveal Nonce
+## 11. Этап reveal nonce
 
-После завершения commitment-этапа для каждого участника нажать:
+Для каждого участника нажать:
 
 ```text
 Reveal Nonce
 ```
 
-После раскрытия nonce у каждого участника должен появиться публичный nonce point.
+После выполнения должны появиться:
 
-После раскрытия nonce всеми участниками флаг:
-
-```text
-All Nonces Revealed
-```
-
-должен стать `true`.
-
-Также должна появиться информация:
-
-- Aggregate Nonce Point;
-- Challenge.
+- public nonce point участников;
+- aggregate nonce point;
+- challenge.
 
 ---
 
-## 10. Этап 3: Submit Partial Signature
+## 12. Этап partial signatures
 
-После раскрытия nonce для каждого участника нажать:
+Для каждого участника нажать:
 
 ```text
 Submit Partial Signature
 ```
 
-После отправки частичной подписи у каждого участника должен появиться scalar частичной подписи.
-
-После отправки частичных подписей всеми участниками:
+После выполнения:
 
 ```text
-All Partial Signatures Submitted
+AllPartialSignaturesSubmitted = true
+SessionStatus = Completed
 ```
 
-должен стать `true`.
+Должны появиться:
 
-Статус сессии должен стать:
-
-```text
-Completed
-```
-
-Также должны появиться:
-
-- Aggregate Signature Nonce Point;
-- Aggregate Signature Scalar.
+- aggregate signature nonce point;
+- aggregate signature scalar.
 
 ---
 
-## 11. Проверка итоговой подписи
+## 13. Проверка подписи
 
-После завершения сессии нажать:
+Нажать:
 
 ```text
 Проверить итоговую подпись
@@ -309,11 +269,9 @@ Completed
 Aggregate signature is valid.
 ```
 
-Это демонстрирует, что итоговая коллективная подпись корректно проверяется.
-
 ---
 
-## 12. Формирование отчёта
+## 14. Отчёт
 
 Нажать:
 
@@ -321,88 +279,53 @@ Aggregate signature is valid.
 Сформировать отчёт
 ```
 
-На странице появится блок отчёта с данными:
+Показать:
 
-- Created UTC;
-- Completed UTC;
-- Status;
-- Protection Mode;
-- Participants Count;
-- Aggregate Signature Scalar;
-- флаги этапов протокола.
+- статус сессии;
+- режим защиты;
+- количество участников;
+- digest сообщения;
+- aggregate public key;
+- aggregate signature;
+- состояние этапов.
 
-Также можно скачать отчёты:
-
-```text
-Скачать JSON
-Скачать TXT
-```
+Также показать скачивание JSON/TXT отчёта.
 
 ---
 
-## 13. Проверка истории сессий
+## 15. История сессий
 
-Открыть страницу:
+Открыть:
 
 ```text
 http://localhost:5080/protocol-session-history
 ```
 
-На странице должна отображаться созданная протокольная сессия.
-
-Для каждой записи отображаются:
-
-- Session ID;
-- Epoch;
-- Status;
-- Protection Mode;
-- Created UTC;
-- Completed UTC;
-- количество участников;
-- состояние этапов.
+Показать созданную сессию и её параметры.
 
 ---
 
-## 14. Проверка Audit Log
+## 16. Audit Log
 
-Открыть страницу:
+Открыть:
 
 ```text
 http://localhost:5080/audit-log
 ```
 
-В журнале должны быть записи о ключевых действиях:
-
-- создание протокольной сессии;
-- отзыв участника, если выполнялся;
-- переход эпохи, если выполнялся.
-
-На странице доступны фильтры:
-
-- поиск по тексту;
-- фильтр по Action Type;
-- фильтр по Entity Type;
-- фильтр по Entity ID.
-
-Пример поиска:
-
-```text
-RandomizedScalarProcessing
-```
-
-Так можно показать, что режим защиты фиксируется в аудите.
+Показать журнал аудита и фильтрацию.
 
 ---
 
-## 15. Проверка PostgreSQL-проекции сессии
+## 17. Проверка PostgreSQL-проекции
 
-Подключиться к PostgreSQL:
+Открыть psql:
 
-```powershell
-docker exec -it multisig-postgres psql -U multisig_user -d multisig_schnorr
+```bash
+./scripts/open-psql.sh
 ```
 
-Проверить таблицу сессий:
+Проверить сессии:
 
 ```sql
 select session_id, session_status, protection_mode, created_utc, completed_utc
@@ -418,17 +341,15 @@ from protocol_session_participants
 order by session_id, display_name;
 ```
 
-Ожидается, что завершённая сессия сохранена в PostgreSQL.
-
 ---
 
-## 16. Проверка сохранения после перезапуска API
+## 18. Проверка сохранения после перезапуска API
 
 1. Остановить API через `Ctrl + C`.
 2. Запустить API заново:
 
-```powershell
-dotnet run --project .\src\MultiSigSchnorr.Api\MultiSigSchnorr.Api.csproj
+```bash
+./scripts/run-api.sh
 ```
 
 3. Открыть:
@@ -437,104 +358,56 @@ dotnet run --project .\src\MultiSigSchnorr.Api\MultiSigSchnorr.Api.csproj
 http://localhost:5080/protocol-session-history
 ```
 
-Созданная ранее сессия должна остаться в истории.
+Сессия должна остаться в истории, потому что публичная проекция хранится в PostgreSQL.
 
-4. Открыть сессию.
+---
 
-Ожидаемый результат:
+## 19. Бенчмарки
 
-- сессия доступна для просмотра;
-- отчёт доступен;
-- публичные артефакты отображаются;
-- действия продолжения протокола недоступны, если runtime-состояние отсутствует.
+Запуск:
 
-Это демонстрирует разделение:
+```bash
+./scripts/run-benchmarks.sh
+```
 
-```text
-runtime-состояние -> in-memory
-публичная история -> PostgreSQL
+Показать сравнение режимов:
+
+- Baseline;
+- RandomizedScalarProcessing.
+
+---
+
+## 20. Полная проверка перед защитой
+
+```bash
+./scripts/build-and-test.sh
+```
+
+Если нужно без integration-тестов:
+
+```bash
+./scripts/build-and-test.sh --skip-integration
 ```
 
 ---
 
-## 17. Демонстрация администрирования
-
-Открыть страницу:
+## Короткий сценарий для защиты
 
 ```text
-http://localhost:5080/administration
-```
-
-На странице можно показать:
-
-- активную эпоху;
-- список участников;
-- статус участников;
-- переход к следующей эпохе;
-- отзыв участника.
-
-После выполнения административного действия следует открыть:
-
-```text
-http://localhost:5080/audit-log
-```
-
-и показать, что действие попало в журнал аудита.
-
----
-
-## 18. Демонстрация бенчмарков
-
-Запустить бенчмарки:
-
-```powershell
-dotnet run --project .\tests\MultiSigSchnorr.Benchmarks\MultiSigSchnorr.Benchmarks.csproj -c Release
-```
-
-Бенчмарки сравнивают:
-
-- генерацию открытого ключа в режиме `Baseline`;
-- генерацию открытого ключа в режиме `RandomizedScalarProcessing`;
-- вычисление частичной подписи в обоих режимах;
-- полный протокольный цикл в обоих режимах.
-
-Результаты позволяют показать накладные расходы защитного режима.
-
----
-
-## 19. Основной тезис демонстрации
-
-В ходе демонстрации важно подчеркнуть:
-
-1. Система реализует полный цикл коллективной подписи Шнорра.
-2. В протоколе участвуют несколько подписантов.
-3. Итоговая подпись формируется из частичных подписей.
-4. Подпись проверяется как единый агрегированный результат.
-5. Реализован режим рандомизированной обработки секретного скаляра.
-6. Публичное состояние протокола сохраняется в PostgreSQL.
-7. Секретные материалы не сохраняются в базе данных.
-8. Действия фиксируются в журнале аудита.
-9. Система содержит API, Web-интерфейс, тесты и бенчмарки.
-
----
-
-## 20. Краткая последовательность для защиты
-
-Минимальный сценарий, если времени мало:
-
-```text
-1. Показать docker ps с PostgreSQL.
-2. Открыть /system-overview.
-3. Показать PostgreSQL diagnostics.
-4. Создать сессию на /protocol-sessions.
-5. Выбрать RandomizedScalarProcessing.
-6. Пройти commitment.
-7. Пройти reveal nonce.
-8. Отправить partial signatures.
-9. Показать статус Completed.
-10. Проверить подпись.
-11. Скачать отчёт.
-12. Открыть /protocol-session-history.
-13. Открыть /audit-log.
-14. Показать записи в PostgreSQL через psql.
+1. ./scripts/start-postgres.sh
+2. ./scripts/apply-migrations.sh
+3. ./scripts/run-api.sh
+4. ./scripts/run-web.sh
+5. /system-overview
+6. /administration
+7. создать/выбрать состав группы
+8. создать новую эпоху
+9. /protocol-sessions
+10. создать сессию
+11. пройти commitment, reveal nonce, partial signatures
+12. проверить подпись
+13. сформировать отчёт
+14. /protocol-session-history
+15. /audit-log
+16. показать PostgreSQL-запросы через psql
 ```
