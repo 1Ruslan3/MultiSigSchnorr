@@ -1,0 +1,238 @@
+@page "/protocol-math"
+@page "/protocol-math/{SessionId:guid}"
+@using System.Collections
+@using System.Globalization
+@using System.Reflection
+@rendermode InteractiveServer
+@inject MultiSigSchnorr.Web.Services.Api.ProtocolSessionsApiClient ApiClient
+@inject NavigationManager Navigation
+
+<PageTitle>Protocol Math</PageTitle>
+
+<div class="math-page">
+    <section class="math-hero">
+        <div>
+            <div class="math-eyebrow">Mathematical protocol trace</div>
+            <h1>Математический разбор подписи</h1>
+            <p>
+                Подробная демонстрация того, как протокольная сессия проходит этапы:
+                хеширование сообщения, агрегацию ключей, проверку commitments, агрегацию nonce,
+                вычисление challenge, формирование частичных подписей и итоговую проверку
+                равенства <code>s · G = R + c · X</code>.
+            </p>
+        </div>
+
+        <div class="math-hero-card">
+            <strong>Безопасность вывода</strong>
+            <span>
+                На странице показываются только публичные и отчётные значения.
+                Private key, secret nonce и randomization mask не выводятся.
+            </span>
+        </div>
+    </section>
+
+    <section class="session-loader">
+        <label class="form-label">Session ID</label>
+        <div class="loader-row">
+            <input class="form-control" placeholder="Введите Session ID" @bind="_sessionIdText" @bind:event="oninput" />
+            <button class="btn btn-primary" @onclick="LoadAsync" disabled="@_isBusy">Загрузить разбор</button>
+        </div>
+        <div class="form-text">
+            Session ID можно взять на странице <a href="protocol-sessions">Protocol Sessions</a>
+            или из <a href="protocol-session-history">Session History</a>.
+        </div>
+    </section>
+
+    @if (!string.IsNullOrWhiteSpace(_error))
+    {
+        <div class="alert alert-danger">@_error</div>
+    }
+
+    @if (_isBusy)
+    {
+        <div class="math-card"><em>Загрузка состояния протокольной сессии...</em></div>
+    }
+    else if (_trace is not null)
+    {
+        <section class="math-card">
+            <div class="card-title-row">
+                <div>
+                    <h2>Session Summary</h2>
+                    <p>Общие данные протокольной сессии и текущий статус вычислений.</p>
+                </div>
+                <a class="btn btn-outline-secondary" href="protocol-sessions">Вернуться к протоколу</a>
+            </div>
+            <div class="summary-grid">
+                <div><span>Session ID</span><code>@_trace.SessionId</code></div>
+                <div><span>Epoch ID</span><code>@_trace.EpochId</code></div>
+                <div><span>Epoch Number</span><strong>@_trace.EpochNumber</strong></div>
+                <div><span>Status</span><strong>@_trace.SessionStatus</strong></div>
+                <div><span>Protection Mode</span><strong>@_trace.ProtectionMode</strong></div>
+                <div><span>Participants</span><strong>@_trace.Participants.Count</strong></div>
+            </div>
+        </section>
+
+        <section class="math-card">
+            <div class="card-title-row"><div><h2>Пошаговый trace</h2><p>Формулы, входные данные, выходные значения и проверки на каждом этапе протокола.</p></div></div>
+            <div class="steps-list">
+                @foreach (var step in _trace.Steps)
+                {
+                    <article class="math-step @(step.IsComplete ? "complete" : "pending")">
+                        <div class="step-head">
+                            <div class="step-number">@step.Number.ToString("00", CultureInfo.InvariantCulture)</div>
+                            <div><h3>@step.Title</h3><span>@step.Stage</span></div>
+                            <div class="step-status">@(step.IsComplete ? "done" : "pending")</div>
+                        </div>
+                        <p>@step.Description</p>
+                        <div class="formula-box">@step.Formula</div>
+                        @if (step.Values.Count > 0)
+                        {
+                            <div class="value-grid">
+                                @foreach (var item in step.Values)
+                                {
+                                    <div class="value-item"><span>@item.Key</span><code>@Shorten(item.Value)</code></div>
+                                }
+                            </div>
+                        }
+                    </article>
+                }
+            </div>
+        </section>
+
+        <section class="math-card">
+            <div class="card-title-row"><div><h2>Участники и публичные значения</h2><p>Открытый ключ, коэффициент агрегации, commitment, public nonce и partial signature каждого подписанта.</p></div></div>
+            <div class="participant-math-grid">
+                @foreach (var participant in _trace.Participants)
+                {
+                    <article class="participant-math-card">
+                        <div class="participant-head"><strong>@participant.DisplayName</strong><code>@participant.ParticipantId</code></div>
+                        <div class="participant-values">
+                            <div><span>Pᵢ, public key</span><code>@Shorten(participant.PublicKeyHex)</code></div>
+                            <div><span>aᵢ, aggregation coefficient</span><code>@Shorten(participant.AggregationCoefficientHex)</code></div>
+                            <div><span>Cᵢ, commitment</span><code>@Shorten(participant.CommitmentHex)</code></div>
+                            <div><span>Rᵢ, public nonce</span><code>@Shorten(participant.PublicNoncePointHex)</code></div>
+                            <div><span>sᵢ, partial signature</span><code>@Shorten(participant.PartialSignatureHex)</code></div>
+                        </div>
+                        <div class="check-note">
+                            <strong>Partial signature equation:</strong>
+                            <code>sᵢ · G ?= Rᵢ + c · aᵢ · Pᵢ</code>
+                            <span>Сейчас отображаются формула и публичные значения. Backend-проверка left/right points будет добавлена следующим пакетом.</span>
+                        </div>
+                    </article>
+                }
+            </div>
+        </section>
+
+        <section class="math-card final-check">
+            <div class="card-title-row"><div><h2>Финальная проверка агрегированной подписи</h2><p>После агрегации частичных подписей проверяется равенство <code>s · G = R + c · X</code>.</p></div></div>
+            <div class="equation-panel">
+                <div class="equation-line"><span>left</span><code>s · G</code></div>
+                <div class="equation-line"><span>right</span><code>R + c · X</code></div>
+                <div class="equation-line result"><span>check</span><code>s · G ?= R + c · X</code></div>
+            </div>
+            <div class="value-grid">
+                <div class="value-item"><span>X, aggregate public key</span><code>@Shorten(_trace.AggregatePublicKeyHex)</code></div>
+                <div class="value-item"><span>R, aggregate nonce point</span><code>@Shorten(_trace.AggregateNoncePointHex)</code></div>
+                <div class="value-item"><span>c, challenge</span><code>@Shorten(_trace.ChallengeHex)</code></div>
+                <div class="value-item"><span>s, aggregate signature scalar</span><code>@Shorten(_trace.AggregateSignatureScalarHex)</code></div>
+            </div>
+        </section>
+    }
+    else
+    {
+        <div class="math-card empty-state"><h2>Выберите протокольную сессию</h2><p>Для математического разбора нужна уже созданная сессия. После выполнения этапов протокола здесь появятся публичные значения и формулы.</p></div>
+    }
+</div>
+
+@code {
+    [Parameter] public Guid? SessionId { get; set; }
+    private string _sessionIdText = string.Empty;
+    private string? _error;
+    private bool _isBusy;
+    private ProtocolMathTraceView? _trace;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (SessionId.HasValue && SessionId.Value != Guid.Empty)
+        {
+            _sessionIdText = SessionId.Value.ToString();
+            await LoadAsync();
+        }
+    }
+
+    private async Task LoadAsync()
+    {
+        try
+        {
+            _error = null; _trace = null;
+            if (!Guid.TryParse(_sessionIdText, out var sessionId)) { _error = "Введите корректный Session ID."; return; }
+            _isBusy = true;
+            object? session = await ApiClient.GetSessionStateAsync(sessionId);
+            if (session is null) { _error = "Сессия не найдена."; return; }
+            _trace = BuildTrace(session);
+            if (SessionId != sessionId) Navigation.NavigateTo($"/protocol-math/{sessionId}", replace: true);
+        }
+        catch (Exception ex) { _error = ex.Message; }
+        finally { _isBusy = false; }
+    }
+
+    private ProtocolMathTraceView BuildTrace(object session)
+    {
+        var participants = GetEnumerable(session, "Participants").Select(BuildParticipantTrace).ToList();
+        var trace = new ProtocolMathTraceView
+        {
+            SessionId = GetValue<Guid>(session, "SessionId"),
+            EpochId = GetValue<Guid>(session, "EpochId"),
+            EpochNumber = GetValue<int>(session, "EpochNumber"),
+            SessionStatus = GetString(session, "SessionStatus"),
+            ProtectionMode = GetString(session, "ProtectionMode"),
+            MessageDigestHex = GetString(session, "MessageDigestHex"),
+            AggregatePublicKeyHex = GetString(session, "AggregatePublicKeyHex"),
+            AggregateNoncePointHex = FirstNonEmpty(GetString(session, "AggregateNoncePointHex"), GetString(session, "AggregateSignatureNoncePointHex")),
+            ChallengeHex = GetString(session, "ChallengeHex"),
+            AggregateSignatureScalarHex = GetString(session, "AggregateSignatureScalarHex"),
+            Participants = participants
+        };
+        trace.Steps = BuildSteps(trace);
+        return trace;
+    }
+
+    private static MathParticipantTraceView BuildParticipantTrace(object participant) => new()
+    {
+        ParticipantId = GetValue<Guid>(participant, "ParticipantId"),
+        DisplayName = GetString(participant, "DisplayName"),
+        PublicKeyHex = GetString(participant, "PublicKeyHex"),
+        AggregationCoefficientHex = GetString(participant, "AggregationCoefficientHex"),
+        CommitmentHex = GetString(participant, "CommitmentHex"),
+        PublicNoncePointHex = GetString(participant, "PublicNoncePointHex"),
+        PartialSignatureHex = GetString(participant, "PartialSignatureHex")
+    };
+
+    private static IReadOnlyList<MathStepView> BuildSteps(ProtocolMathTraceView t)
+    {
+        return new List<MathStepView>
+        {
+            new(){Number=1,Stage="Message Digest",Title="Хеширование сообщения",Formula="e = H(m)",Description="Сообщение преобразуется в digest фиксированной длины. Далее в challenge участвует digest.",IsComplete=HasValue(t.MessageDigestHex),Values=new(){["e = H(m)"]=t.MessageDigestHex}},
+            new(){Number=2,Stage="Key Aggregation",Title="Агрегация открытых ключей",Formula="L = H(P₁ || ... || Pₙ),  aᵢ = H(L || Pᵢ),  X = Σ(aᵢ · Pᵢ)",Description="Коэффициенты агрегации связывают каждого участника с полным набором публичных ключей группы.",IsComplete=HasValue(t.AggregatePublicKeyHex),Values=BuildKeyAggregationValues(t)},
+            new(){Number=3,Stage="Commitments",Title="Публикация commitments",Formula="Cᵢ = H(Rᵢ)",Description="Commitment фиксирует public nonce до раскрытия. После reveal можно проверить H(Rᵢ) == Cᵢ.",IsComplete=t.Participants.Count>0 && t.Participants.All(x=>HasValue(x.CommitmentHex)),Values=t.Participants.ToDictionary(x=>$"Cᵢ for {x.DisplayName}",x=>x.CommitmentHex)},
+            new(){Number=4,Stage="Nonce Aggregation",Title="Раскрытие и агрегация public nonce",Formula="R = R₁ + R₂ + ... + Rₙ",Description="Aggregate nonce point R используется при вычислении challenge и входит в подпись.",IsComplete=HasValue(t.AggregateNoncePointHex),Values=BuildNonceValues(t)},
+            new(){Number=5,Stage="Challenge",Title="Вычисление challenge",Formula="c = H(X || R || e)",Description="Challenge связывает сообщение, aggregate public key и aggregate nonce.",IsComplete=HasValue(t.ChallengeHex),Values=new(){["X"]=t.AggregatePublicKeyHex,["R"]=t.AggregateNoncePointHex,["e"]=t.MessageDigestHex,["c"]=t.ChallengeHex}},
+            new(){Number=6,Stage="Partial Signatures",Title="Формирование частичных подписей",Formula="sᵢ = rᵢ + c · aᵢ · xᵢ mod q",Description="Secret nonce rᵢ и private key xᵢ не выводятся. Отображается только публичный результат sᵢ.",IsComplete=t.Participants.Count>0 && t.Participants.All(x=>HasValue(x.PartialSignatureHex)),Values=t.Participants.ToDictionary(x=>$"sᵢ for {x.DisplayName}",x=>x.PartialSignatureHex)},
+            new(){Number=7,Stage="Aggregate Signature",Title="Агрегация частичных подписей",Formula="s = s₁ + s₂ + ... + sₙ mod q",Description="Итоговый скаляр подписи получается суммированием частичных подписей по модулю порядка группы.",IsComplete=HasValue(t.AggregateSignatureScalarHex),Values=new(){["s"]=t.AggregateSignatureScalarHex}},
+            new(){Number=8,Stage="Final Verification",Title="Проверка агрегированной подписи",Formula="s · G ?= R + c · X",Description="Финальная проверка подтверждает соответствие подписи сообщению, aggregate public key и aggregate nonce.",IsComplete=HasValue(t.AggregateSignatureScalarHex) && HasValue(t.AggregateNoncePointHex) && HasValue(t.ChallengeHex) && HasValue(t.AggregatePublicKeyHex),Values=new(){["left"]="s · G",["right"]="R + c · X",["s"]=t.AggregateSignatureScalarHex,["R"]=t.AggregateNoncePointHex,["c"]=t.ChallengeHex,["X"]=t.AggregatePublicKeyHex}}
+        };
+    }
+
+    private static Dictionary<string,string> BuildKeyAggregationValues(ProtocolMathTraceView t){var d=new Dictionary<string,string>{{"X, aggregate public key",t.AggregatePublicKeyHex}};foreach(var p in t.Participants){d[$"Pᵢ for {p.DisplayName}"]=p.PublicKeyHex;d[$"aᵢ for {p.DisplayName}"]=p.AggregationCoefficientHex;}return d;}
+    private static Dictionary<string,string> BuildNonceValues(ProtocolMathTraceView t){var d=new Dictionary<string,string>{{"R, aggregate nonce",t.AggregateNoncePointHex}};foreach(var p in t.Participants)d[$"Rᵢ for {p.DisplayName}"]=p.PublicNoncePointHex;return d;}
+    private static IReadOnlyList<object> GetEnumerable(object source,string propertyName){var v=source.GetType().GetProperty(propertyName,BindingFlags.Public|BindingFlags.Instance)?.GetValue(source);return v is IEnumerable e?e.Cast<object>().ToList():Array.Empty<object>();}
+    private static T GetValue<T>(object source,string propertyName){var v=source.GetType().GetProperty(propertyName,BindingFlags.Public|BindingFlags.Instance)?.GetValue(source);if(v is null)return default!;if(v is T t)return t;if(typeof(T).IsEnum)return(T)Enum.Parse(typeof(T),v.ToString()??string.Empty);return(T)Convert.ChangeType(v,typeof(T),CultureInfo.InvariantCulture);}
+    private static string GetString(object source,string propertyName)=>source.GetType().GetProperty(propertyName,BindingFlags.Public|BindingFlags.Instance)?.GetValue(source)?.ToString()??string.Empty;
+    private static bool HasValue(string value)=>!string.IsNullOrWhiteSpace(value);
+    private static string FirstNonEmpty(params string[] values)=>values.FirstOrDefault(x=>!string.IsNullOrWhiteSpace(x))??string.Empty;
+    private static string Shorten(string value){if(string.IsNullOrWhiteSpace(value))return "—";return value.Length<=44?value:$"{value[..24]}...{value[^16..]}";}
+
+    private sealed class ProtocolMathTraceView{public Guid SessionId{get;init;}public Guid EpochId{get;init;}public int EpochNumber{get;init;}public string SessionStatus{get;init;}=string.Empty;public string ProtectionMode{get;init;}=string.Empty;public string MessageDigestHex{get;init;}=string.Empty;public string AggregatePublicKeyHex{get;init;}=string.Empty;public string AggregateNoncePointHex{get;init;}=string.Empty;public string ChallengeHex{get;init;}=string.Empty;public string AggregateSignatureScalarHex{get;init;}=string.Empty;public IReadOnlyList<MathParticipantTraceView> Participants{get;init;}=Array.Empty<MathParticipantTraceView>();public IReadOnlyList<MathStepView> Steps{get;set;}=Array.Empty<MathStepView>();}
+    private sealed class MathParticipantTraceView{public Guid ParticipantId{get;init;}public string DisplayName{get;init;}=string.Empty;public string PublicKeyHex{get;init;}=string.Empty;public string AggregationCoefficientHex{get;init;}=string.Empty;public string CommitmentHex{get;init;}=string.Empty;public string PublicNoncePointHex{get;init;}=string.Empty;public string PartialSignatureHex{get;init;}=string.Empty;}
+    private sealed class MathStepView{public int Number{get;init;}public string Stage{get;init;}=string.Empty;public string Title{get;init;}=string.Empty;public string Formula{get;init;}=string.Empty;public string Description{get;init;}=string.Empty;public bool IsComplete{get;init;}public Dictionary<string,string> Values{get;init;}=new();}
+}

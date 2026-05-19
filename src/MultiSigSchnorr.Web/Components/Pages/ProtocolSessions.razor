@@ -289,6 +289,11 @@
                            rel="noopener noreferrer">
                             Скачать TXT
                         </a>
+
+                        <a class="btn btn-outline-info"
+                           href="@($"protocol-math/{session.SessionId}")">
+                            Математический разбор
+                        </a>
                     </div>
 
                     @if (!string.IsNullOrWhiteSpace(_verificationMessage))
@@ -327,10 +332,6 @@
                     </div>
                 </div>
 
-
-                <ProtocolComputationTrace Session="session"
-                                          VerificationMessage="_verificationMessage"
-                                          IsSignatureValid="_isSignatureValid" />
 
                 @if (_report is not null)
                 {
