@@ -11,20 +11,32 @@ public sealed class SystemController : ControllerBase
 {
     private readonly DevelopmentDataSeeder _developmentDataSeeder;
     private readonly IParticipantRepository _participantRepository;
+    private readonly IWebHostEnvironment _environment;
 
     public SystemController(
         DevelopmentDataSeeder developmentDataSeeder,
-        IParticipantRepository participantRepository)
+        IParticipantRepository participantRepository,
+        IWebHostEnvironment environment)
     {
         _developmentDataSeeder = developmentDataSeeder
             ?? throw new ArgumentNullException(nameof(developmentDataSeeder));
         _participantRepository = participantRepository
             ?? throw new ArgumentNullException(nameof(participantRepository));
+        _environment = environment
+            ?? throw new ArgumentNullException(nameof(environment));
     }
 
     [HttpGet("seed")]
     public async Task<ActionResult<DevelopmentSeedApiResponse>> GetSeed(CancellationToken cancellationToken)
     {
+        if (!_environment.IsDevelopment())
+        {
+            return NotFound(new
+            {
+                error = "Development seed endpoint is available only in Development environment."
+            });
+        }
+
         await _developmentDataSeeder.SeedAsync(cancellationToken);
 
         var snapshot = _developmentDataSeeder.Snapshot;
