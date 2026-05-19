@@ -1,7 +1,115 @@
-﻿@page "/"
+@page "/"
 
-<PageTitle>Home</PageTitle>
+<PageTitle>MultiSigSchnorr</PageTitle>
 
-<h1>Hello, world!</h1>
+<div class="home">
+    <section class="home-hero">
+        <div class="home-hero__content">
+            <div class="eyebrow">Collective Schnorr Signature Protocol</div>
+            <h1>MultiSigSchnorr</h1>
+            <p>
+                Web-система для демонстрации коллективной цифровой подписи Шнорра:
+                управление участниками через эпохи, выполнение протокола, проверка подписи,
+                аудит и сохранение публичного состояния в PostgreSQL.
+            </p>
 
-Welcome to your new app.
+            <div class="home-hero__actions">
+                <a class="primary-action" href="protocol-sessions">Начать протокол</a>
+                <a class="secondary-action" href="administration">Настроить группу</a>
+            </div>
+        </div>
+
+        <div class="home-hero__card">
+            <div class="status-row">
+                <span class="status-dot"></span>
+                <span>Demo-ready architecture</span>
+            </div>
+
+            <dl class="system-facts">
+                <div>
+                    <dt>Curve</dt>
+                    <dd>P-256</dd>
+                </div>
+                <div>
+                    <dt>Storage</dt>
+                    <dd>PostgreSQL</dd>
+                </div>
+                <div>
+                    <dt>Protection</dt>
+                    <dd>Baseline / Randomized</dd>
+                </div>
+                <div>
+                    <dt>Secrets</dt>
+                    <dd>Runtime-only</dd>
+                </div>
+            </dl>
+        </div>
+    </section>
+
+    <section class="home-section">
+        <div class="section-title">
+            <h2>Основной сценарий</h2>
+            <p>Четыре шага, которые удобно показать при демонстрации проекта.</p>
+        </div>
+
+        <div class="steps">
+            <a class="step-card" href="administration">
+                <span>01</span>
+                <strong>Сформировать группу</strong>
+                <p>Создание участников, runtime key readiness и новая активная эпоха.</p>
+            </a>
+
+            <a class="step-card" href="protocol-sessions">
+                <span>02</span>
+                <strong>Создать сессию</strong>
+                <p>Выбор подписантов, сообщения и режима обработки секретного скаляра.</p>
+            </a>
+
+            <a class="step-card" href="protocol-sessions">
+                <span>03</span>
+                <strong>Выполнить протокол</strong>
+                <p>Commitment, reveal nonce и отправка частичных подписей.</p>
+            </a>
+
+            <a class="step-card" href="protocol-session-history">
+                <span>04</span>
+                <strong>Проверить результат</strong>
+                <p>Проверка агрегированной подписи, отчёт и история сессий.</p>
+            </a>
+        </div>
+    </section>
+
+    <section class="home-section">
+        <div class="section-title">
+            <h2>Разделы приложения</h2>
+            <p>Быстрый переход к основным частям системы.</p>
+        </div>
+
+        <div class="page-grid">
+            <a href="system-overview" class="page-card">
+                <strong>System Overview</strong>
+                <span>Диагностика БД, seed-данные, состояние PostgreSQL.</span>
+            </a>
+
+            <a href="administration" class="page-card">
+                <strong>Administration</strong>
+                <span>Участники, эпохи, отзыв, runtime private key readiness.</span>
+            </a>
+
+            <a href="protocol-sessions" class="page-card">
+                <strong>Protocol Sessions</strong>
+                <span>Создание и выполнение протокола коллективной подписи.</span>
+            </a>
+
+            <a href="protocol-session-history" class="page-card">
+                <strong>History</strong>
+                <span>Сохранённые публичные проекции протокольных сессий.</span>
+            </a>
+
+            <a href="audit-log" class="page-card">
+                <strong>Audit Log</strong>
+                <span>Журнал протокольных и административных действий.</span>
+            </a>
+        </div>
+    </section>
+</div>

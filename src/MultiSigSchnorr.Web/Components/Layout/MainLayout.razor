@@ -1,18 +1,29 @@
-﻿@inherits LayoutComponentBase
+@inherits LayoutComponentBase
 
-<div class="page">
-    <div class="sidebar">
-        <NavMenu />
-    </div>
+<div class="app-shell">
+    <header class="app-topbar">
+        <div class="app-topbar__inner">
+            <a class="app-logo" href="">
+                <span class="app-logo__mark">Σ</span>
+                <span class="app-logo__text">
+                    <span class="app-logo__title">MultiSigSchnorr</span>
+                    <span class="app-logo__subtitle">collective signature system</span>
+                </span>
+            </a>
 
-    <main>
-        <div class="top-row px-4">
-            <a href="https://learn.microsoft.com/aspnet/core/" target="_blank">About</a>
+            <nav class="app-menu" aria-label="Main navigation">
+                <NavLink class="app-menu__link" href="" Match="NavLinkMatch.All">Home</NavLink>
+                <NavLink class="app-menu__link" href="system-overview">System</NavLink>
+                <NavLink class="app-menu__link" href="administration">Admin</NavLink>
+                <NavLink class="app-menu__link" href="protocol-sessions">Protocol</NavLink>
+                <NavLink class="app-menu__link" href="protocol-session-history">History</NavLink>
+                <NavLink class="app-menu__link" href="audit-log">Audit</NavLink>
+            </nav>
         </div>
+    </header>
 
-        <article class="content px-4">
-            @Body
-        </article>
+    <main class="app-content">
+        @Body
     </main>
 </div>
 

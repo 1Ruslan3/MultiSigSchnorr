@@ -1,98 +1,209 @@
-.page {
-    position: relative;
-    display: flex;
-    flex-direction: column;
+.app-shell {
+    min-height: 100vh;
+    background:
+        radial-gradient(circle at 12% -10%, rgba(37, 99, 235, 0.12), transparent 30rem),
+        radial-gradient(circle at 88% 0%, rgba(124, 58, 237, 0.10), transparent 28rem),
+        #f7f9fc;
 }
 
-main {
-    flex: 1;
+.app-topbar {
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+    height: 66px;
+    border-bottom: 1px solid rgba(203, 213, 225, 0.72);
+    background: rgba(255, 255, 255, 0.92);
+    backdrop-filter: blur(18px);
+    box-shadow: 0 10px 30px rgba(15, 23, 42, 0.055);
 }
 
-.sidebar {
-    background-image: linear-gradient(180deg, rgb(5, 39, 103) 0%, #3a0647 70%);
-}
-
-.top-row {
-    background-color: #f7f7f7;
-    border-bottom: 1px solid #d6d5d5;
-    justify-content: flex-end;
-    height: 3.5rem;
+.app-topbar__inner {
     display: flex;
     align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    width: min(100%, 1480px);
+    height: 100%;
+    margin: 0 auto;
+    padding: 0 1rem;
 }
 
-    .top-row ::deep a, .top-row ::deep .btn-link {
-        white-space: nowrap;
-        margin-left: 1.5rem;
-        text-decoration: none;
-    }
-
-    .top-row ::deep a:hover, .top-row ::deep .btn-link:hover {
-        text-decoration: underline;
-    }
-
-    .top-row ::deep a:first-child {
-        overflow: hidden;
-        text-overflow: ellipsis;
-    }
-
-@media (max-width: 640.98px) {
-    .top-row {
-        justify-content: space-between;
-    }
-
-    .top-row ::deep a, .top-row ::deep .btn-link {
-        margin-left: 0;
-    }
+.app-logo {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.7rem;
+    min-width: 245px;
+    color: #0f172a;
+    text-decoration: none;
 }
 
-@media (min-width: 641px) {
-    .page {
-        flex-direction: row;
-    }
+.app-logo:hover {
+    color: #0f172a;
+}
 
-    .sidebar {
-        width: 250px;
-        height: 100vh;
-        position: sticky;
-        top: 0;
-    }
+.app-logo__mark {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 38px;
+    height: 38px;
+    flex: 0 0 38px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #2563eb, #4f46e5);
+    color: #fff;
+    font-size: 1.1rem;
+    font-weight: 900;
+    box-shadow: 0 8px 18px rgba(37, 99, 235, 0.24);
+}
 
-    .top-row {
-        position: sticky;
-        top: 0;
-        z-index: 1;
-    }
+.app-logo__text {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    line-height: 1.05;
+}
 
-    .top-row.auth ::deep a:first-child {
-        flex: 1;
-        text-align: right;
-        width: 0;
-    }
+.app-logo__title {
+    color: #0f172a;
+    font-size: 1rem;
+    font-weight: 850;
+    letter-spacing: -0.035em;
+}
 
-    .top-row, article {
-        padding-left: 2rem !important;
-        padding-right: 1.5rem !important;
-    }
+.app-logo__subtitle {
+    margin-top: 0.2rem;
+    color: #64748b;
+    font-size: 0.67rem;
+    font-weight: 750;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
+.app-menu {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.32rem;
+    min-width: 0;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: none;
+}
+
+.app-menu::-webkit-scrollbar {
+    display: none;
+}
+
+/* NavLink is rendered as a child component, so CSS isolation needs ::deep. */
+::deep .app-menu__link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 38px;
+    min-width: max-content;
+    padding: 0 0.82rem;
+    border: 1px solid transparent;
+    border-radius: 999px;
+    color: #334155;
+    font-size: 0.88rem;
+    font-weight: 760;
+    line-height: 1;
+    text-decoration: none;
+    transition:
+        background-color 0.15s ease,
+        color 0.15s ease,
+        border-color 0.15s ease,
+        box-shadow 0.15s ease;
+}
+
+::deep .app-menu__link:hover {
+    border-color: #c7d2fe;
+    background: #eef2ff;
+    color: #3730a3;
+}
+
+::deep .app-menu__link.active {
+    border-color: #2563eb;
+    background: #2563eb;
+    color: #fff;
+    box-shadow: 0 8px 16px rgba(37, 99, 235, 0.20);
+}
+
+.app-content {
+    width: min(100%, 1480px);
+    margin: 0 auto;
+    padding: 1.15rem;
 }
 
 #blazor-error-ui {
-    color-scheme: light only;
-    background: lightyellow;
-    bottom: 0;
-    box-shadow: 0 -1px 2px rgba(0, 0, 0, 0.2);
-    box-sizing: border-box;
     display: none;
-    left: 0;
-    padding: 0.6rem 1.25rem 0.7rem 1.25rem;
     position: fixed;
-    width: 100%;
-    z-index: 1000;
+    right: 1rem;
+    bottom: 1rem;
+    z-index: 2000;
+    max-width: 520px;
+    padding: 1rem 1.25rem;
+    border: 1px solid #fecaca;
+    border-radius: 16px;
+    background: #fee2e2;
+    color: #7f1d1d;
+    box-shadow: 0 18px 45px rgba(127, 29, 29, 0.18);
 }
 
-    #blazor-error-ui .dismiss {
-        cursor: pointer;
-        position: absolute;
-        right: 0.75rem;
-        top: 0.5rem;
+#blazor-error-ui .reload {
+    margin-left: 0.75rem;
+    color: #991b1b;
+    font-weight: 800;
+}
+
+#blazor-error-ui .dismiss {
+    margin-left: 0.75rem;
+    color: #991b1b;
+    cursor: pointer;
+    font-weight: 900;
+}
+
+@media (max-width: 980px) {
+    .app-topbar__inner {
+        padding: 0 0.75rem;
     }
+
+    .app-logo {
+        min-width: 178px;
+    }
+
+    .app-logo__subtitle {
+        display: none;
+    }
+
+    ::deep .app-menu__link {
+        height: 36px;
+        padding: 0 0.68rem;
+        font-size: 0.84rem;
+    }
+}
+
+@media (max-width: 680px) {
+    .app-topbar {
+        height: 60px;
+    }
+
+    .app-logo {
+        min-width: 46px;
+    }
+
+    .app-logo__text {
+        display: none;
+    }
+
+    .app-logo__mark {
+        width: 36px;
+        height: 36px;
+        flex-basis: 36px;
+    }
+
+    .app-content {
+        padding: 0.75rem;
+    }
+}
