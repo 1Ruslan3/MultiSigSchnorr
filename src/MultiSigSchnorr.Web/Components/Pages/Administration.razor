@@ -109,6 +109,46 @@
 
                 <div class="admin-card">
                     <div class="admin-card-header">
+                        <h3>Демонстрационная группа</h3>
+                    </div>
+
+                    <div class="form-block">
+                        <label for="demo-group-prefix">Префикс имён</label>
+                        <input id="demo-group-prefix"
+                               class="form-control"
+                               placeholder="Например: Demo Signer"
+                               @bind="_demoGroupPrefix"
+                               @bind:event="oninput"
+                               disabled="@_isBusy" />
+                    </div>
+
+                    <div class="form-block mt-3">
+                        <label for="demo-group-count">Количество участников</label>
+                        <input id="demo-group-count"
+                               class="form-control"
+                               type="number"
+                               min="2"
+                               max="10"
+                               @bind="_demoParticipantsCount"
+                               disabled="@_isBusy" />
+                    </div>
+
+                    <div class="action-row mt-3">
+                        <button class="btn btn-success"
+                                @onclick="CreateDemoGroupAsync"
+                                disabled="@(_isBusy || _demoParticipantsCount < 2 || _demoParticipantsCount > 10)">
+                            Создать демо-группу
+                        </button>
+                    </div>
+
+                    <div class="alert alert-secondary mt-3 mb-0">
+                        Будут созданы новые runtime-ready участники и новая активная эпоха.
+                        Это самый быстрый способ подготовить чистую группу для демонстрации.
+                    </div>
+                </div>
+
+                <div class="admin-card">
+                    <div class="admin-card-header">
                         <h3>Параметры отзыва</h3>
                     </div>
 
@@ -269,6 +309,9 @@
     private string? _error;
     private string? _info;
     private string _newParticipantDisplayName = string.Empty;
+
+    private string _demoGroupPrefix = "Demo Signer";
+    private int _demoParticipantsCount = 3;
     private string _revokeReason = "Administrative revocation";
     private bool _isBusy;
 
@@ -383,6 +426,41 @@
         }
     }
 
+    private async Task CreateDemoGroupAsync()
+    {
+        try
+        {
+            _isBusy = true;
+            _error = null;
+            _info = null;
+
+            if (_demoParticipantsCount < 2 || _demoParticipantsCount > 10)
+                throw new InvalidOperationException("Demo group must contain from 2 to 10 participants.");
+
+            var prefix = string.IsNullOrWhiteSpace(_demoGroupPrefix)
+                ? "Demo Signer"
+                : _demoGroupPrefix.Trim();
+
+            _state = await ApiClient.CreateDemoGroupAsync(
+                _demoParticipantsCount,
+                prefix);
+
+            _selectedParticipantIds.Clear();
+            SyncRenameInputs();
+            SelectOnlyActiveMembers();
+
+            _info = $"Демо-группа из {_demoParticipantsCount} участников создана. Новая активная эпоха: № {_state.ActiveEpochNumber}.";
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+        }
+        finally
+        {
+            _isBusy = false;
+        }
+    }
+
     private async Task CreateEpochWithSelectedMembersAsync()
     {
         try
@@ -430,7 +508,8 @@
 
         foreach (var participant in _state.Participants
                      .Where(x => x.IsActiveMemberOfActiveEpoch &&
-                                 x.ParticipantStatus == ParticipantStatus.Active))
+                                 x.ParticipantStatus == ParticipantStatus.Active &&
+                                 x.HasRuntimePrivateKeyMaterial))
         {
             _selectedParticipantIds.Add(participant.ParticipantId);
         }
@@ -444,7 +523,8 @@
             return;
 
         foreach (var participant in _state.Participants
-                     .Where(x => x.ParticipantStatus == ParticipantStatus.Active))
+                     .Where(x => x.ParticipantStatus == ParticipantStatus.Active &&
+                                 x.HasRuntimePrivateKeyMaterial))
         {
             _selectedParticipantIds.Add(participant.ParticipantId);
         }

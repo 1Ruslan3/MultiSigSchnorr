@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using MultiSigSchnorr.Application.UseCases.CreateDemoGroup;
 using MultiSigSchnorr.Application.UseCases.CreateEpochWithMembers;
 using MultiSigSchnorr.Application.UseCases.CreateParticipant;
 using MultiSigSchnorr.Application.UseCases.RenameParticipant;
@@ -13,11 +14,13 @@ public sealed class GroupManagementController : ControllerBase
     private readonly CreateParticipantHandler _createParticipantHandler;
     private readonly RenameParticipantHandler _renameParticipantHandler;
     private readonly CreateEpochWithMembersHandler _createEpochWithMembersHandler;
+    private readonly CreateDemoGroupHandler _createDemoGroupHandler;
 
     public GroupManagementController(
         CreateParticipantHandler createParticipantHandler,
         RenameParticipantHandler renameParticipantHandler,
-        CreateEpochWithMembersHandler createEpochWithMembersHandler)
+        CreateEpochWithMembersHandler createEpochWithMembersHandler,
+        CreateDemoGroupHandler createDemoGroupHandler)
     {
         _createParticipantHandler = createParticipantHandler
             ?? throw new ArgumentNullException(nameof(createParticipantHandler));
@@ -25,6 +28,8 @@ public sealed class GroupManagementController : ControllerBase
             ?? throw new ArgumentNullException(nameof(renameParticipantHandler));
         _createEpochWithMembersHandler = createEpochWithMembersHandler
             ?? throw new ArgumentNullException(nameof(createEpochWithMembersHandler));
+        _createDemoGroupHandler = createDemoGroupHandler
+            ?? throw new ArgumentNullException(nameof(createDemoGroupHandler));
     }
 
     [HttpPost("participants")]
@@ -86,6 +91,30 @@ public sealed class GroupManagementController : ControllerBase
                 new CreateEpochWithMembersRequest
                 {
                     ParticipantIds = request.ParticipantIds
+                },
+                DateTime.UtcNow,
+                cancellationToken);
+
+            return NoContent();
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or ArgumentException)
+        {
+            return BadRequest(new { error = ex.Message });
+        }
+    }
+
+    [HttpPost("demo-group")]
+    public async Task<IActionResult> CreateDemoGroup(
+        [FromBody] CreateDemoGroupApiRequest request,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            await _createDemoGroupHandler.HandleAsync(
+                new CreateDemoGroupRequest
+                {
+                    ParticipantsCount = request.ParticipantsCount,
+                    DisplayNamePrefix = request.DisplayNamePrefix
                 },
                 DateTime.UtcNow,
                 cancellationToken);

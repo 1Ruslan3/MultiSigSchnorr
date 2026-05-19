@@ -100,6 +100,26 @@ public sealed class ProtocolSessionsApiClient
         return await GetAdministrationStateAsync(cancellationToken);
     }
 
+
+    public async Task<EpochAdministrationStateApiResponse> CreateDemoGroupAsync(
+        int participantsCount = 3,
+        string displayNamePrefix = "Demo Signer",
+        CancellationToken cancellationToken = default)
+    {
+        using var response = await _httpClient.PostAsJsonAsync(
+            "api/admin/demo-group",
+            new CreateDemoGroupApiRequest
+            {
+                ParticipantsCount = participantsCount,
+                DisplayNamePrefix = displayNamePrefix
+            },
+            cancellationToken);
+
+        await EnsureSuccessAsync(response, cancellationToken);
+
+        return await GetAdministrationStateAsync(cancellationToken);
+    }
+
     public async Task<IReadOnlyList<AuditLogItemApiResponse>> GetAuditLogAsync(
         int take = 100,
         string? search = null,

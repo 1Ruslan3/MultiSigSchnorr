@@ -179,4 +179,33 @@ public sealed class AuditLogService
 
         return _auditLogRepository.AddAsync(entry, cancellationToken);
     }
+
+    public Task LogDemoGroupCreatedAsync(
+        Guid epochId,
+        int epochNumber,
+        string displayNamePrefix,
+        IReadOnlyCollection<Guid> participantIds,
+        DateTime createdUtc,
+        CancellationToken cancellationToken = default)
+    {
+        var metadataJson = JsonSerializer.Serialize(new
+        {
+            epochId,
+            epochNumber,
+            displayNamePrefix,
+            participantIds,
+            participantsCount = participantIds.Count
+        });
+
+        var entry = new AuditLogEntry(
+            Guid.NewGuid(),
+            AuditActionType.DemoGroupCreated,
+            "Epoch",
+            epochId,
+            $"Demo group was created for epoch '{epochId}' (number {epochNumber}) with {participantIds.Count} participants.",
+            metadataJson,
+            createdUtc);
+
+        return _auditLogRepository.AddAsync(entry, cancellationToken);
+    }
 }

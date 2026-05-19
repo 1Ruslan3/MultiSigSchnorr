@@ -7,5 +7,6 @@ public enum AuditActionType
     EpochTransitioned = 2,
     ParticipantCreated = 3,
     ParticipantRenamed = 4,
-    EpochCreatedWithMembers = 5
+    EpochCreatedWithMembers = 5,
+    DemoGroupCreated = 6
 }

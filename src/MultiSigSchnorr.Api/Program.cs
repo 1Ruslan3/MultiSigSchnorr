@@ -27,6 +27,7 @@ using MultiSigSchnorr.Infrastructure.Repositories;
 using MultiSigSchnorr.Protocol.Epochs;
 using MultiSigSchnorr.Protocol.Revocation;
 using MultiSigSchnorr.Protocol.Sessions;
+using MultiSigSchnorr.Application.UseCases.CreateDemoGroup;
 using MultiSigSchnorr.Application.UseCases.CreateEpochWithMembers;
 using MultiSigSchnorr.Application.UseCases.CreateParticipant;
 using MultiSigSchnorr.Application.UseCases.RenameParticipant;
@@ -135,6 +136,7 @@ builder.Services.AddScoped<GetAuditLogHandler>();
 builder.Services.AddScoped<CreateParticipantHandler>();
 builder.Services.AddScoped<RenameParticipantHandler>();
 builder.Services.AddScoped<CreateEpochWithMembersHandler>();
+builder.Services.AddScoped<CreateDemoGroupHandler>();
 
 var app = builder.Build();
 
