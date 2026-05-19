@@ -1,0 +1,252 @@
+@using MultiSigSchnorr.Contracts.ProtocolSessions
+@using MultiSigSchnorr.Domain.Enums
+
+<div class="trace-card">
+    <div class="trace-card__header">
+        <div>
+            <h3>Журнал криптографических вычислений</h3>
+            <p>
+                Демонстрационный trace показывает математический цикл коллективной подписи без раскрытия приватных ключей и secret nonce.
+            </p>
+        </div>
+
+        <span class="trace-badge">safe trace</span>
+    </div>
+
+    <div class="trace-warning">
+        В журнал выводятся только публичные значения: открытые ключи, commitments, public nonce,
+        challenge, частичные подписи и итоговая агрегированная подпись. Значения <code>x_i</code>,
+        <code>r_i</code> и randomization mask не отображаются.
+    </div>
+
+    @if (Session is null)
+    {
+        <div class="trace-empty">Сессия не выбрана.</div>
+    }
+    else
+    {
+        <div class="trace-timeline">
+            @foreach (var item in BuildTrace())
+            {
+                <details class="trace-step" open="@item.IsOpen">
+                    <summary>
+                        <span class="trace-step__number">@item.StepNumber.ToString("00")</span>
+                        <span class="trace-step__title-block">
+                            <span class="trace-step__title">@item.Title</span>
+                            <span class="trace-step__stage">@item.Stage</span>
+                        </span>
+                        <span class="trace-step__state @(item.IsCompleted ? "completed" : "pending")">
+                            @(item.IsCompleted ? "done" : "pending")
+                        </span>
+                    </summary>
+
+                    <div class="trace-step__body">
+                        <p>@item.Description</p>
+
+                        @if (!string.IsNullOrWhiteSpace(item.Formula))
+                        {
+                            <div class="trace-formula">
+                                @item.Formula
+                            </div>
+                        }
+
+                        @if (item.Values.Count > 0)
+                        {
+                            <div class="trace-values">
+                                @foreach (var pair in item.Values)
+                                {
+                                    <div class="trace-value-row">
+                                        <span>@pair.Key</span>
+                                        <code>@DisplayValue(pair.Value)</code>
+                                    </div>
+                                }
+                            </div>
+                        }
+                    </div>
+                </details>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter]
+    public SessionStateApiResponse? Session { get; set; }
+
+    [Parameter]
+    public string? VerificationMessage { get; set; }
+
+    [Parameter]
+    public bool? IsSignatureValid { get; set; }
+
+    private IReadOnlyList<TraceItem> BuildTrace()
+    {
+        if (Session is null)
+            return Array.Empty<TraceItem>();
+
+        var items = new List<TraceItem>();
+
+        items.Add(new TraceItem(
+            StepNumber: 1,
+            Stage: "Message digest",
+            Title: "Хеширование сообщения",
+            Formula: "e = H(m)",
+            Description: "Сообщение протокольной сессии преобразуется в digest. Именно digest участвует в дальнейших вычислениях challenge.",
+            IsCompleted: !string.IsNullOrWhiteSpace(Session.MessageDigestHex),
+            IsOpen: true,
+            Values: new Dictionary<string, string>
+            {
+                ["Message digest"] = Session.MessageDigestHex
+            }));
+
+        var aggregationValues = new Dictionary<string, string>
+        {
+            ["Participants count"] = Session.Participants.Count.ToString(),
+            ["Aggregate public key X"] = Session.AggregatePublicKeyHex
+        };
+
+        foreach (var participant in Session.Participants)
+        {
+            if (!string.IsNullOrWhiteSpace(participant.AggregationCoefficientHex))
+                aggregationValues[$"a({participant.DisplayName})"] = participant.AggregationCoefficientHex;
+        }
+
+        items.Add(new TraceItem(
+            StepNumber: 2,
+            Stage: "Key aggregation",
+            Title: "Агрегация открытых ключей",
+            Formula: "X = Σ(a_i · P_i)",
+            Description: "Для каждого участника используется коэффициент агрегации a_i. Итоговый агрегированный открытый ключ X связывает подпись с выбранным составом группы.",
+            IsCompleted: !string.IsNullOrWhiteSpace(Session.AggregatePublicKeyHex),
+            IsOpen: true,
+            Values: aggregationValues));
+
+        var commitmentValues = new Dictionary<string, string>
+        {
+            ["All commitments published"] = Session.AllCommitmentsPublished.ToString()
+        };
+
+        foreach (var participant in Session.Participants)
+        {
+            commitmentValues[$"commitment({participant.DisplayName})"] =
+                string.IsNullOrWhiteSpace(participant.CommitmentHex) ? "—" : participant.CommitmentHex;
+        }
+
+        items.Add(new TraceItem(
+            StepNumber: 3,
+            Stage: "Commitment round",
+            Title: "Публикация commitments",
+            Formula: "t_i = H(R_i)",
+            Description: "На первом раунде участники фиксируют свои nonce через commitment. Это защищает протокол от подмены nonce после раскрытия значений другими участниками.",
+            IsCompleted: Session.AllCommitmentsPublished,
+            IsOpen: !Session.AllCommitmentsPublished,
+            Values: commitmentValues));
+
+        var nonceValues = new Dictionary<string, string>
+        {
+            ["All nonces revealed"] = Session.AllNoncesRevealed.ToString(),
+            ["Aggregate nonce R"] = Session.AggregateNoncePointHex
+        };
+
+        foreach (var participant in Session.Participants)
+        {
+            nonceValues[$"R({participant.DisplayName})"] =
+                string.IsNullOrWhiteSpace(participant.PublicNoncePointHex) ? "—" : participant.PublicNoncePointHex;
+        }
+
+        items.Add(new TraceItem(
+            StepNumber: 4,
+            Stage: "Nonce aggregation",
+            Title: "Раскрытие и агрегация public nonce",
+            Formula: "R = Σ R_i",
+            Description: "После раскрытия public nonce система агрегирует точки nonce участников. Полученная точка R входит в итоговую подпись.",
+            IsCompleted: Session.AllNoncesRevealed,
+            IsOpen: Session.AllCommitmentsPublished && !Session.AllNoncesRevealed,
+            Values: nonceValues));
+
+        items.Add(new TraceItem(
+            StepNumber: 5,
+            Stage: "Challenge",
+            Title: "Вычисление challenge",
+            Formula: "c = H(X || R || e)",
+            Description: "Challenge связывает digest сообщения, агрегированный открытый ключ и агрегированный nonce. После этого участники могут вычислять частичные подписи.",
+            IsCompleted: !string.IsNullOrWhiteSpace(Session.ChallengeHex),
+            IsOpen: Session.AllNoncesRevealed,
+            Values: new Dictionary<string, string>
+            {
+                ["Challenge c"] = Session.ChallengeHex,
+                ["Aggregate public key X"] = Session.AggregatePublicKeyHex,
+                ["Aggregate nonce R"] = Session.AggregateNoncePointHex,
+                ["Message digest e"] = Session.MessageDigestHex
+            }));
+
+        var partialValues = new Dictionary<string, string>
+        {
+            ["All partial signatures submitted"] = Session.AllPartialSignaturesSubmitted.ToString(),
+            ["Protection mode"] = Session.ProtectionMode.ToString()
+        };
+
+        foreach (var participant in Session.Participants)
+        {
+            partialValues[$"s({participant.DisplayName})"] =
+                string.IsNullOrWhiteSpace(participant.PartialSignatureHex) ? "—" : participant.PartialSignatureHex;
+        }
+
+        items.Add(new TraceItem(
+            StepNumber: 6,
+            Stage: "Partial signatures",
+            Title: "Формирование частичных подписей",
+            Formula: "s_i = r_i + c · a_i · x_i mod q",
+            Description: "Каждый участник вычисляет частичную подпись. В журнале показывается результат s_i, но не раскрываются секретный nonce r_i и приватный ключ x_i.",
+            IsCompleted: Session.AllPartialSignaturesSubmitted,
+            IsOpen: Session.AllNoncesRevealed && !Session.AllPartialSignaturesSubmitted,
+            Values: partialValues));
+
+        items.Add(new TraceItem(
+            StepNumber: 7,
+            Stage: "Aggregate signature",
+            Title: "Агрегация частичных подписей",
+            Formula: "s = Σ s_i mod q; signature = (R, s)",
+            Description: "После получения всех partial signatures система агрегирует скаляры и формирует итоговую коллективную подпись.",
+            IsCompleted: Session.SessionStatus == SessionStatus.Completed,
+            IsOpen: Session.AllPartialSignaturesSubmitted,
+            Values: new Dictionary<string, string>
+            {
+                ["Aggregate signature nonce R"] = Session.AggregateSignatureNoncePointHex,
+                ["Aggregate signature scalar s"] = Session.AggregateSignatureScalarHex,
+                ["Session status"] = Session.SessionStatus.ToString()
+            }));
+
+        var verificationValues = new Dictionary<string, string>
+        {
+            ["Verification equation"] = "s · G = R + c · X",
+            ["Verification result"] = IsSignatureValid.HasValue ? IsSignatureValid.Value.ToString() : "not checked",
+            ["Verification message"] = string.IsNullOrWhiteSpace(VerificationMessage) ? "—" : VerificationMessage
+        };
+
+        items.Add(new TraceItem(
+            StepNumber: 8,
+            Stage: "Verification",
+            Title: "Проверка итоговой подписи",
+            Formula: "s · G ?= R + c · X",
+            Description: "Финальная проверка подтверждает, что агрегированная подпись соответствует сообщению, aggregate public key и aggregate nonce.",
+            IsCompleted: IsSignatureValid == true,
+            IsOpen: Session.SessionStatus == SessionStatus.Completed,
+            Values: verificationValues));
+
+        return items;
+    }
+
+    private static string DisplayValue(string? value)
+        => string.IsNullOrWhiteSpace(value) ? "—" : value;
+
+    private sealed record TraceItem(
+        int StepNumber,
+        string Stage,
+        string Title,
+        string Formula,
+        string Description,
+        bool IsCompleted,
+        bool IsOpen,
+        IReadOnlyDictionary<string, string> Values);
+}
