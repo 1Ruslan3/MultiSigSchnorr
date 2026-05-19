@@ -1,4 +1,5 @@
 using System.Security.Cryptography;
+using MultiSigSchnorr.Application.Audit;
 using MultiSigSchnorr.Application.Repositories;
 using MultiSigSchnorr.Crypto.Curves;
 using MultiSigSchnorr.Domain.Entities;
@@ -13,12 +14,14 @@ public sealed class CreateParticipantHandler
     private readonly IPrivateKeyMaterialRepository _privateKeyMaterialRepository;
     private readonly PublicKeyGenerationService _publicKeyGenerationService;
     private readonly P256CurveContext _curve;
+    private readonly AuditLogService _auditLogService;
 
     public CreateParticipantHandler(
         IParticipantRepository participantRepository,
         IPrivateKeyMaterialRepository privateKeyMaterialRepository,
         PublicKeyGenerationService publicKeyGenerationService,
-        P256CurveContext curve)
+        P256CurveContext curve,
+        AuditLogService auditLogService)
     {
         _participantRepository = participantRepository
             ?? throw new ArgumentNullException(nameof(participantRepository));
@@ -27,6 +30,7 @@ public sealed class CreateParticipantHandler
         _publicKeyGenerationService = publicKeyGenerationService
             ?? throw new ArgumentNullException(nameof(publicKeyGenerationService));
         _curve = curve ?? throw new ArgumentNullException(nameof(curve));
+        _auditLogService = auditLogService ?? throw new ArgumentNullException(nameof(auditLogService));
     }
 
     public async Task<Participant> HandleAsync(
@@ -51,6 +55,13 @@ public sealed class CreateParticipantHandler
 
         await _participantRepository.AddAsync(participant, cancellationToken);
         await _privateKeyMaterialRepository.SetAsync(participant.Id, privateKey, cancellationToken);
+
+        await _auditLogService.LogParticipantCreatedAsync(
+            participant.Id,
+            participant.DisplayName,
+            participant.PublicKey.ToHex(),
+            nowUtc,
+            cancellationToken);
 
         return participant;
     }

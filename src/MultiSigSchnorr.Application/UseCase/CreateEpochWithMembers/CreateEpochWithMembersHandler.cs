@@ -1,3 +1,4 @@
+using MultiSigSchnorr.Application.Audit;
 using MultiSigSchnorr.Application.Repositories;
 using MultiSigSchnorr.Domain.Entities;
 using MultiSigSchnorr.Domain.Enums;
@@ -10,17 +11,20 @@ public sealed class CreateEpochWithMembersHandler
     private readonly IParticipantRepository _participantRepository;
     private readonly IEpochMemberRepository _epochMemberRepository;
     private readonly IPrivateKeyMaterialRepository _privateKeyMaterialRepository;
+    private readonly AuditLogService _auditLogService;
 
     public CreateEpochWithMembersHandler(
         IEpochRepository epochRepository,
         IParticipantRepository participantRepository,
         IEpochMemberRepository epochMemberRepository,
-        IPrivateKeyMaterialRepository privateKeyMaterialRepository)
+        IPrivateKeyMaterialRepository privateKeyMaterialRepository,
+        AuditLogService auditLogService)
     {
         _epochRepository = epochRepository ?? throw new ArgumentNullException(nameof(epochRepository));
         _participantRepository = participantRepository ?? throw new ArgumentNullException(nameof(participantRepository));
         _epochMemberRepository = epochMemberRepository ?? throw new ArgumentNullException(nameof(epochMemberRepository));
         _privateKeyMaterialRepository = privateKeyMaterialRepository ?? throw new ArgumentNullException(nameof(privateKeyMaterialRepository));
+        _auditLogService = auditLogService ?? throw new ArgumentNullException(nameof(auditLogService));
     }
 
     public async Task<Epoch> HandleAsync(
@@ -78,8 +82,15 @@ public sealed class CreateEpochWithMembersHandler
         }
 
         var epochs = await _epochRepository.ListAsync(cancellationToken);
+        var activeEpochs = epochs
+            .Where(x => x.Status == EpochStatus.Active)
+            .ToList();
 
-        foreach (var activeEpoch in epochs.Where(x => x.Status == EpochStatus.Active))
+        var closedEpochIds = activeEpochs
+            .Select(x => x.Id)
+            .ToList();
+
+        foreach (var activeEpoch in activeEpochs)
         {
             activeEpoch.Close(nowUtc);
             await _epochRepository.UpdateAsync(activeEpoch, cancellationToken);
@@ -108,6 +119,14 @@ public sealed class CreateEpochWithMembersHandler
                     nowUtc),
                 cancellationToken);
         }
+
+        await _auditLogService.LogEpochCreatedWithMembersAsync(
+            epoch.Id,
+            epoch.Number,
+            closedEpochIds,
+            participantIds,
+            nowUtc,
+            cancellationToken);
 
         return epoch;
     }

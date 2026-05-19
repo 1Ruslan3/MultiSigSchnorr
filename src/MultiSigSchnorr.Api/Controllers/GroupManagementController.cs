@@ -64,6 +64,7 @@ public sealed class GroupManagementController : ControllerBase
                     ParticipantId = participantId,
                     DisplayName = request.DisplayName
                 },
+                DateTime.UtcNow,
                 cancellationToken);
 
             return NoContent();

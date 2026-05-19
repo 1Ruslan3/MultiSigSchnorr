@@ -11,7 +11,7 @@
         <div>
             <h1>Audit Log</h1>
             <p class="audit-subtitle">
-                Журнал ключевых событий системы: создание протокольных сессий, отзыв участников и переход между эпохами.
+                Журнал ключевых событий системы: протокольные сессии, управление участниками, создание эпох и административные действия.
             </p>
         </div>
 
@@ -211,8 +211,11 @@
     private static string GetActionCss(AuditActionType actionType) => actionType switch
     {
         AuditActionType.ProtocolSessionCreated => "session",
+        AuditActionType.ParticipantCreated => "participant",
+        AuditActionType.ParticipantRenamed => "participant",
         AuditActionType.ParticipantRevoked => "revocation",
         AuditActionType.EpochTransitioned => "epoch",
+        AuditActionType.EpochCreatedWithMembers => "epoch",
         _ => "default"
     };
 }

@@ -45,6 +45,58 @@ public sealed class AuditLogService
         return _auditLogRepository.AddAsync(entry, cancellationToken);
     }
 
+    public Task LogParticipantCreatedAsync(
+        Guid participantId,
+        string displayName,
+        string publicKeyHex,
+        DateTime createdUtc,
+        CancellationToken cancellationToken = default)
+    {
+        var metadataJson = JsonSerializer.Serialize(new
+        {
+            participantId,
+            displayName,
+            publicKeyHex
+        });
+
+        var entry = new AuditLogEntry(
+            Guid.NewGuid(),
+            AuditActionType.ParticipantCreated,
+            "Participant",
+            participantId,
+            $"Participant '{displayName}' ({participantId}) was created.",
+            metadataJson,
+            createdUtc);
+
+        return _auditLogRepository.AddAsync(entry, cancellationToken);
+    }
+
+    public Task LogParticipantRenamedAsync(
+        Guid participantId,
+        string oldDisplayName,
+        string newDisplayName,
+        DateTime createdUtc,
+        CancellationToken cancellationToken = default)
+    {
+        var metadataJson = JsonSerializer.Serialize(new
+        {
+            participantId,
+            oldDisplayName,
+            newDisplayName
+        });
+
+        var entry = new AuditLogEntry(
+            Guid.NewGuid(),
+            AuditActionType.ParticipantRenamed,
+            "Participant",
+            participantId,
+            $"Participant '{participantId}' was renamed from '{oldDisplayName}' to '{newDisplayName}'.",
+            metadataJson,
+            createdUtc);
+
+        return _auditLogRepository.AddAsync(entry, cancellationToken);
+    }
+
     public Task LogParticipantRevokedAsync(
         Guid participantId,
         Guid epochId,
@@ -93,6 +145,35 @@ public sealed class AuditLogService
             "Epoch",
             newEpochId,
             $"Epoch transitioned from '{previousEpochId}' to '{newEpochId}' (number {newEpochNumber}).",
+            metadataJson,
+            createdUtc);
+
+        return _auditLogRepository.AddAsync(entry, cancellationToken);
+    }
+
+    public Task LogEpochCreatedWithMembersAsync(
+        Guid newEpochId,
+        int newEpochNumber,
+        IReadOnlyCollection<Guid> closedEpochIds,
+        IReadOnlyCollection<Guid> participantIds,
+        DateTime createdUtc,
+        CancellationToken cancellationToken = default)
+    {
+        var metadataJson = JsonSerializer.Serialize(new
+        {
+            newEpochId,
+            newEpochNumber,
+            closedEpochIds,
+            participantIds,
+            participantsCount = participantIds.Count
+        });
+
+        var entry = new AuditLogEntry(
+            Guid.NewGuid(),
+            AuditActionType.EpochCreatedWithMembers,
+            "Epoch",
+            newEpochId,
+            $"Epoch '{newEpochId}' (number {newEpochNumber}) was created with {participantIds.Count} selected participants.",
             metadataJson,
             createdUtc);
 

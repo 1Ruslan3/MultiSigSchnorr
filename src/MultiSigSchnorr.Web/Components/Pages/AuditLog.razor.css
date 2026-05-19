@@ -153,6 +153,11 @@
     color: #b91c1c;
 }
 
+.audit-participant {
+    background: #fef3c7;
+    color: #92400e;
+}
+
 .audit-epoch {
     background: #dcfce7;
     color: #166534;

@@ -1,6 +1,7 @@
 using System.Net;
 using System.Net.Http.Json;
 using Microsoft.Extensions.DependencyInjection;
+using MultiSigSchnorr.Contracts.Audit;
 using MultiSigSchnorr.Contracts.Administration;
 using MultiSigSchnorr.Contracts.Diagnostics;
 using MultiSigSchnorr.Domain.Enums;
@@ -283,6 +284,86 @@ public sealed class GroupManagementWorkflowTests : IClassFixture<MultiSigSchnorr
         Assert.Contains("runtime private key material", error, StringComparison.OrdinalIgnoreCase);
     }
 
+
+    [Fact]
+    public async Task Group_Management_Actions_Should_Be_Audited()
+    {
+        using var client = _factory.CreateClient();
+
+        var suffix = CreateSuffix();
+        var firstName = $"Audit-Alice-{suffix}";
+        var secondName = $"Audit-Bob-{suffix}";
+        var renamedFirstName = $"Audit-Alice-Renamed-{suffix}";
+
+        await PostNoContentAsync(
+            client,
+            "/api/admin/participants",
+            new CreateParticipantApiRequest { DisplayName = firstName });
+
+        await PostNoContentAsync(
+            client,
+            "/api/admin/participants",
+            new CreateParticipantApiRequest { DisplayName = secondName });
+
+        var stateAfterCreate = await GetAdministrationStateAsync(client);
+
+        var firstParticipant = Assert.Single(
+            stateAfterCreate.Participants,
+            participant => participant.DisplayName == firstName);
+
+        var secondParticipant = Assert.Single(
+            stateAfterCreate.Participants,
+            participant => participant.DisplayName == secondName);
+
+        var creationAudit = await GetAuditLogAsync(
+            client,
+            $"actionType={AuditActionType.ParticipantCreated}&entityId={firstParticipant.ParticipantId}");
+
+        var participantCreatedEntry = Assert.Single(creationAudit);
+        Assert.Equal(AuditActionType.ParticipantCreated, participantCreatedEntry.ActionType);
+        Assert.Equal("Participant", participantCreatedEntry.EntityType);
+        Assert.Contains(firstName, participantCreatedEntry.Description, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains(firstName, participantCreatedEntry.MetadataJson, StringComparison.OrdinalIgnoreCase);
+
+        await PutNoContentAsync(
+            client,
+            $"/api/admin/participants/{firstParticipant.ParticipantId}/display-name",
+            new RenameParticipantApiRequest { DisplayName = renamedFirstName });
+
+        var renameAudit = await GetAuditLogAsync(
+            client,
+            $"actionType={AuditActionType.ParticipantRenamed}&entityId={firstParticipant.ParticipantId}");
+
+        var participantRenamedEntry = Assert.Single(renameAudit);
+        Assert.Equal(AuditActionType.ParticipantRenamed, participantRenamedEntry.ActionType);
+        Assert.Contains(firstName, participantRenamedEntry.MetadataJson, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains(renamedFirstName, participantRenamedEntry.MetadataJson, StringComparison.OrdinalIgnoreCase);
+
+        await PostNoContentAsync(
+            client,
+            "/api/admin/epochs/create-with-members",
+            new CreateEpochWithMembersApiRequest
+            {
+                ParticipantIds = new[]
+                {
+                    firstParticipant.ParticipantId,
+                    secondParticipant.ParticipantId
+                }
+            });
+
+        var stateAfterEpochCreation = await GetAdministrationStateAsync(client);
+
+        var epochAudit = await GetAuditLogAsync(
+            client,
+            $"actionType={AuditActionType.EpochCreatedWithMembers}&entityId={stateAfterEpochCreation.ActiveEpochId}");
+
+        var epochCreatedEntry = Assert.Single(epochAudit);
+        Assert.Equal(AuditActionType.EpochCreatedWithMembers, epochCreatedEntry.ActionType);
+        Assert.Equal("Epoch", epochCreatedEntry.EntityType);
+        Assert.Contains(firstParticipant.ParticipantId.ToString(), epochCreatedEntry.MetadataJson, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains(secondParticipant.ParticipantId.ToString(), epochCreatedEntry.MetadataJson, StringComparison.OrdinalIgnoreCase);
+    }
+
     private async Task InsertParticipantWithoutRuntimePrivateKeyAsync(
         Guid participantId,
         string displayName,
@@ -318,6 +399,16 @@ public sealed class GroupManagementWorkflowTests : IClassFixture<MultiSigSchnorr
             .Where(participant => participant.IsActiveMemberOfActiveEpoch)
             .Select(participant => participant.ParticipantId)
             .ToHashSet();
+    }
+
+
+    private static async Task<IReadOnlyList<AuditLogItemApiResponse>> GetAuditLogAsync(
+        HttpClient client,
+        string query)
+    {
+        return await GetRequiredAsync<IReadOnlyList<AuditLogItemApiResponse>>(
+            client,
+            $"/api/audit?{query}");
     }
 
     private static async Task<TResponse> GetRequiredAsync<TResponse>(
