@@ -3,7 +3,7 @@
 <div class="app-shell">
     <header class="app-topbar">
         <div class="app-topbar__inner">
-<a class="app-logo" href="">
+            <a class="app-logo" href="">
                 <span class="app-logo__mark">Σ</span>
                 <span class="app-logo__text">
                     <span class="app-logo__title">MultiSigSchnorr</span>
