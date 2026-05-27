@@ -16,7 +16,7 @@
             <h1>Математический разбор подписи</h1>
             <p>
                 Подробная демонстрация публичных вычислений: commitments, challenge,
-                partial signature checks и финальная проверка <code>s · G = R + c · X</code>.
+                partial signature checks и финальная проверка <code>s · G + c · X ?= R</code>.
             </p>
         </div>
 
@@ -65,7 +65,8 @@
                     <p>Общие данные сессии и публичные криптографические значения.</p>
                 </div>
 
-                <a class="btn btn-outline-secondary" href="@($"/protocol-sessions?sessionId={_trace.SessionId}")">
+                <a class="btn btn-outline-secondary"
+                   href="@($"/protocol-sessions?sessionId={_trace.SessionId}")">
                     Вернуться к протоколу
                 </a>
             </div>
@@ -169,7 +170,7 @@
                                 <code>@Shorten(participant.CommitmentHex)</code>
                             </div>
                             <div>
-                                <span>H(Rᵢ) recomputed</span>
+                                <span>H(tag || Rᵢ) recomputed</span>
                                 <code>@Shorten(participant.CommitmentRecomputedHex)</code>
                             </div>
                             <div>
@@ -177,11 +178,11 @@
                                 <code>@FormatBool(participant.CommitmentMatchesPublicNonce)</code>
                             </div>
                             <div>
-                                <span>sᵢ · G</span>
+                                <span>sᵢ · G + c · aᵢ · Pᵢ</span>
                                 <code>@Shorten(participant.PartialSignatureLeftPointHex)</code>
                             </div>
                             <div>
-                                <span>Rᵢ + c · aᵢ · Pᵢ</span>
+                                <span>Rᵢ</span>
                                 <code>@Shorten(participant.PartialSignatureRightPointHex)</code>
                             </div>
                             <div>
@@ -200,7 +201,7 @@
                     <h2>Финальная проверка</h2>
                     <p>
                         Итоговое равенство агрегированной подписи:
-                        <code>s · G ?= R + c · X</code>.
+                        <code>s · G + c · X ?= R</code>.
                     </p>
                 </div>
             </div>

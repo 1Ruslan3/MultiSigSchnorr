@@ -1,5 +1,7 @@
+using System.Buffers.Binary;
 using System.Collections;
 using System.Reflection;
+using System.Text;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection;
 using MultiSigSchnorr.Contracts.ProtocolMath;
@@ -15,6 +17,8 @@ namespace MultiSigSchnorr.Api.Controllers;
 [Route("api/protocol-sessions")]
 public sealed class ProtocolMathTraceController : ControllerBase
 {
+    private const string NonceCommitmentDomainTag = "multisig:nonce:commitment";
+
     private readonly IServiceProvider _serviceProvider;
 
     private static readonly Lazy<CurveRuntime> Curve = new(CreateCurveRuntime);
@@ -39,17 +43,21 @@ public sealed class ProtocolMathTraceController : ControllerBase
         return Ok(trace);
     }
 
-    private async Task<object?> LoadSessionStateAsync(
-        Guid sessionId,
-        CancellationToken cancellationToken)
+    private async Task<object?> LoadSessionStateAsync(Guid sessionId, CancellationToken cancellationToken)
     {
         var handlerType = Type.GetType(
-            "MultiSigSchnorr.Application.UseCases.GetSessionState.GetSessionStateHandler, MultiSigSchnorr.Application",
-            throwOnError: false);
+            "MultiSigSchnorr.Application.UseCase.GetSessionState.GetSessionStateHandler, MultiSigSchnorr.Application",
+            throwOnError: false)
+            ?? Type.GetType(
+                "MultiSigSchnorr.Application.UseCases.GetSessionState.GetSessionStateHandler, MultiSigSchnorr.Application",
+                throwOnError: false);
 
         var requestType = Type.GetType(
-            "MultiSigSchnorr.Application.UseCases.GetSessionState.GetSessionStateRequest, MultiSigSchnorr.Application",
-            throwOnError: false);
+            "MultiSigSchnorr.Application.UseCase.GetSessionState.GetSessionStateRequest, MultiSigSchnorr.Application",
+            throwOnError: false)
+            ?? Type.GetType(
+                "MultiSigSchnorr.Application.UseCases.GetSessionState.GetSessionStateRequest, MultiSigSchnorr.Application",
+                throwOnError: false);
 
         if (handlerType is null || requestType is null)
             throw new InvalidOperationException("GetSessionState use case types were not found.");
@@ -62,7 +70,6 @@ public sealed class ProtocolMathTraceController : ControllerBase
             .FirstOrDefault(x =>
             {
                 var parameters = x.GetParameters();
-
                 return parameters.Length >= 1 && parameters[0].ParameterType == requestType;
             });
 
@@ -101,9 +108,7 @@ public sealed class ProtocolMathTraceController : ControllerBase
         var request = Activator.CreateInstance(requestType)
             ?? throw new InvalidOperationException("GetSessionStateRequest could not be created.");
 
-        var sessionIdProperty = requestType.GetProperty(
-            "SessionId",
-            BindingFlags.Public | BindingFlags.Instance);
+        var sessionIdProperty = requestType.GetProperty("SessionId", BindingFlags.Public | BindingFlags.Instance);
 
         if (sessionIdProperty is null || !sessionIdProperty.CanWrite)
             throw new InvalidOperationException("GetSessionStateRequest.SessionId settable property was not found.");
@@ -160,9 +165,7 @@ public sealed class ProtocolMathTraceController : ControllerBase
         };
     }
 
-    private static ProtocolMathParticipantTraceApiResponse BuildParticipantTrace(
-        object participant,
-        string challengeHex)
+    private static ProtocolMathParticipantTraceApiResponse BuildParticipantTrace(object participant, string challengeHex)
     {
         var publicKeyHex = GetString(participant, "PublicKeyHex");
         var aggregationCoefficientHex = GetString(participant, "AggregationCoefficientHex");
@@ -170,17 +173,7 @@ public sealed class ProtocolMathTraceController : ControllerBase
         var publicNoncePointHex = GetString(participant, "PublicNoncePointHex");
         var partialSignatureHex = GetString(participant, "PartialSignatureHex");
 
-        var recomputedCommitment = ComputeCommitment(publicNoncePointHex);
-
-        bool? commitmentMatches = null;
-        if (!string.IsNullOrWhiteSpace(commitmentHex) &&
-            !string.IsNullOrWhiteSpace(recomputedCommitment))
-        {
-            commitmentMatches = string.Equals(
-                commitmentHex,
-                recomputedCommitment,
-                StringComparison.OrdinalIgnoreCase);
-        }
+        var commitmentCheck = ComputeCommitmentCheck(commitmentHex, publicNoncePointHex);
 
         var partialCheck = ComputePartialSignatureCheck(
             partialSignatureHex,
@@ -198,8 +191,8 @@ public sealed class ProtocolMathTraceController : ControllerBase
             CommitmentHex = commitmentHex,
             PublicNoncePointHex = publicNoncePointHex,
             PartialSignatureHex = partialSignatureHex,
-            CommitmentRecomputedHex = recomputedCommitment,
-            CommitmentMatchesPublicNonce = commitmentMatches,
+            CommitmentRecomputedHex = commitmentCheck.RecomputedCommitmentHex,
+            CommitmentMatchesPublicNonce = commitmentCheck.Matches,
             PartialSignatureLeftPointHex = partialCheck.LeftPointHex,
             PartialSignatureRightPointHex = partialCheck.RightPointHex,
             PartialSignatureEquationHolds = partialCheck.EquationHolds
@@ -221,10 +214,7 @@ public sealed class ProtocolMathTraceController : ControllerBase
                 Formula = "e = H(m)",
                 Description = "Сообщение преобразуется в digest фиксированной длины. Именно digest участвует в вычислении challenge.",
                 IsComplete = HasValue(trace.MessageDigestHex),
-                Values = new Dictionary<string, string>
-                {
-                    ["e"] = trace.MessageDigestHex
-                }
+                Values = new Dictionary<string, string> { ["e"] = trace.MessageDigestHex }
             },
             new()
             {
@@ -241,10 +231,9 @@ public sealed class ProtocolMathTraceController : ControllerBase
                 Number = 3,
                 Stage = "Commitment Verification",
                 Title = "Проверка commitments",
-                Formula = "Cᵢ ?= H(Rᵢ)",
-                Description = "После раскрытия public nonce можно пересчитать commitment и сравнить его с ранее опубликованным значением.",
-                IsComplete = participants.Count > 0 &&
-                             participants.All(x => x.CommitmentMatchesPublicNonce == true),
+                Formula = "Cᵢ ?= SHA256(len(tag) || tag || len(Rᵢ) || Rᵢ)",
+                Description = "Commitment пересчитывается тем же способом, что и в Sha256HashService: каждая часть хеша кодируется через 4-байтовый big-endian префикс длины.",
+                IsComplete = participants.Count > 0 && participants.All(x => x.CommitmentMatchesPublicNonce == true),
                 Values = BuildCommitmentValues(participants)
             },
             new()
@@ -278,10 +267,9 @@ public sealed class ProtocolMathTraceController : ControllerBase
                 Number = 6,
                 Stage = "Partial Signature Checks",
                 Title = "Проверка частичных подписей",
-                Formula = "sᵢ · G ?= Rᵢ + c · aᵢ · Pᵢ",
-                Description = "Для каждой частичной подписи вычисляются левая и правая части публичного равенства. Секретные xᵢ и rᵢ не раскрываются.",
-                IsComplete = participants.Count > 0 &&
-                             participants.All(x => x.PartialSignatureEquationHolds == true),
+                Formula = "sᵢ · G + c · aᵢ · Pᵢ ?= Rᵢ",
+                Description = "В проекте частичная подпись формируется как sᵢ = rᵢ - c · aᵢ · xᵢ mod q. Поэтому публичная проверка имеет вид sᵢ · G + c · aᵢ · Pᵢ ?= Rᵢ.",
+                IsComplete = participants.Count > 0 && participants.All(x => x.PartialSignatureEquationHolds == true),
                 Values = BuildPartialSignatureValues(participants)
             },
             new()
@@ -292,23 +280,20 @@ public sealed class ProtocolMathTraceController : ControllerBase
                 Formula = "s = s₁ + s₂ + ... + sₙ mod q",
                 Description = "Итоговый скаляр подписи является суммой частичных подписей по модулю порядка группы.",
                 IsComplete = HasValue(trace.AggregateSignatureScalarHex),
-                Values = new Dictionary<string, string>
-                {
-                    ["s"] = trace.AggregateSignatureScalarHex
-                }
+                Values = new Dictionary<string, string> { ["s"] = trace.AggregateSignatureScalarHex }
             },
             new()
             {
                 Number = 8,
                 Stage = "Final Verification",
                 Title = "Проверка агрегированной подписи",
-                Formula = "s · G ?= R + c · X",
-                Description = "Финальное равенство подтверждает корректность агрегированной подписи относительно сообщения, aggregate public key и aggregate nonce.",
+                Formula = "s · G + c · X ?= R",
+                Description = "Финальная проверка соответствует реализации AggregateSignatureVerifier: сначала вычисляется s · G + c · X, затем результат сравнивается с aggregate nonce R.",
                 IsComplete = finalVerification.EquationHolds == true,
                 Values = new Dictionary<string, string>
                 {
-                    ["left = s · G"] = finalVerification.LeftPointHex,
-                    ["right = R + c · X"] = finalVerification.RightPointHex,
+                    ["left = s · G + c · X"] = finalVerification.LeftPointHex,
+                    ["right = R"] = finalVerification.RightPointHex,
                     ["result"] = finalVerification.EquationHolds?.ToString() ?? "not available"
                 }
             }
@@ -319,10 +304,7 @@ public sealed class ProtocolMathTraceController : ControllerBase
         ProtocolMathTraceApiResponse trace,
         IReadOnlyList<ProtocolMathParticipantTraceApiResponse> participants)
     {
-        var values = new Dictionary<string, string>
-        {
-            ["X"] = trace.AggregatePublicKeyHex
-        };
+        var values = new Dictionary<string, string> { ["X"] = trace.AggregatePublicKeyHex };
 
         foreach (var participant in participants)
         {
@@ -341,7 +323,7 @@ public sealed class ProtocolMathTraceController : ControllerBase
         foreach (var participant in participants)
         {
             values[$"{participant.DisplayName}: Cᵢ stored"] = participant.CommitmentHex;
-            values[$"{participant.DisplayName}: H(Rᵢ) recomputed"] = participant.CommitmentRecomputedHex;
+            values[$"{participant.DisplayName}: Cᵢ recomputed"] = participant.CommitmentRecomputedHex;
             values[$"{participant.DisplayName}: match"] = participant.CommitmentMatchesPublicNonce?.ToString() ?? "not available";
         }
 
@@ -352,15 +334,10 @@ public sealed class ProtocolMathTraceController : ControllerBase
         ProtocolMathTraceApiResponse trace,
         IReadOnlyList<ProtocolMathParticipantTraceApiResponse> participants)
     {
-        var values = new Dictionary<string, string>
-        {
-            ["R"] = trace.AggregateNoncePointHex
-        };
+        var values = new Dictionary<string, string> { ["R"] = trace.AggregateNoncePointHex };
 
         foreach (var participant in participants)
-        {
             values[$"{participant.DisplayName}: Rᵢ"] = participant.PublicNoncePointHex;
-        }
 
         return values;
     }
@@ -372,28 +349,63 @@ public sealed class ProtocolMathTraceController : ControllerBase
 
         foreach (var participant in participants)
         {
-            values[$"{participant.DisplayName}: left"] = participant.PartialSignatureLeftPointHex;
-            values[$"{participant.DisplayName}: right"] = participant.PartialSignatureRightPointHex;
+            values[$"{participant.DisplayName}: left = sᵢ · G + c · aᵢ · Pᵢ"] = participant.PartialSignatureLeftPointHex;
+            values[$"{participant.DisplayName}: right = Rᵢ"] = participant.PartialSignatureRightPointHex;
             values[$"{participant.DisplayName}: result"] = participant.PartialSignatureEquationHolds?.ToString() ?? "not available";
         }
 
         return values;
     }
 
-    private static string ComputeCommitment(string publicNoncePointHex)
+    private static CommitmentCheck ComputeCommitmentCheck(string commitmentHex, string publicNoncePointHex)
     {
-        if (string.IsNullOrWhiteSpace(publicNoncePointHex))
-            return string.Empty;
+        if (!HasValue(commitmentHex) || !HasValue(publicNoncePointHex))
+            return new CommitmentCheck();
 
         try
         {
-            var bytes = Convert.FromHexString(publicNoncePointHex);
-            return Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(bytes));
+            var nonceBytes = Convert.FromHexString(publicNoncePointHex);
+            var recomputedCommitment = ComputeDomainSeparatedSha256Hex(
+                NonceCommitmentDomainTag,
+                nonceBytes);
+
+            return new CommitmentCheck
+            {
+                RecomputedCommitmentHex = recomputedCommitment,
+                Matches = string.Equals(
+                    recomputedCommitment,
+                    commitmentHex,
+                    StringComparison.OrdinalIgnoreCase)
+            };
         }
         catch
         {
-            return string.Empty;
+            return new CommitmentCheck();
         }
+    }
+
+    private static string ComputeDomainSeparatedSha256Hex(string domainTag, params byte[][] parts)
+    {
+        using var hasher = System.Security.Cryptography.IncrementalHash.CreateHash(
+            System.Security.Cryptography.HashAlgorithmName.SHA256);
+
+        AppendHashPart(hasher, Encoding.UTF8.GetBytes(domainTag));
+
+        foreach (var part in parts)
+            AppendHashPart(hasher, part);
+
+        return Convert.ToHexString(hasher.GetHashAndReset());
+    }
+
+    private static void AppendHashPart(
+        System.Security.Cryptography.IncrementalHash hasher,
+        ReadOnlySpan<byte> data)
+    {
+        Span<byte> lengthPrefix = stackalloc byte[4];
+        BinaryPrimitives.WriteInt32BigEndian(lengthPrefix, data.Length);
+
+        hasher.AppendData(lengthPrefix);
+        hasher.AppendData(data);
     }
 
     private static ProtocolMathPointCheck ComputePartialSignatureCheck(
@@ -420,12 +432,17 @@ public sealed class ProtocolMathTraceController : ControllerBase
             var c = ToScalar(challengeHex);
             var a = ToScalar(aggregationCoefficientHex);
 
-            var publicNonce = runtime.Curve.DecodePoint(Convert.FromHexString(publicNoncePointHex));
-            var publicKey = runtime.Curve.DecodePoint(Convert.FromHexString(publicKeyHex));
+            var publicNonce = runtime.Curve.DecodePoint(Convert.FromHexString(publicNoncePointHex)).Normalize();
+            var publicKey = runtime.Curve.DecodePoint(Convert.FromHexString(publicKeyHex)).Normalize();
 
-            var left = runtime.G.Multiply(s).Normalize();
             var coefficient = c.Multiply(a).Mod(runtime.N);
-            var right = publicNonce.Add(publicKey.Multiply(coefficient)).Normalize();
+
+            var left = runtime.G
+                .Multiply(s)
+                .Add(publicKey.Multiply(coefficient))
+                .Normalize();
+
+            var right = publicNonce;
 
             return new ProtocolMathPointCheck
             {
@@ -440,8 +457,7 @@ public sealed class ProtocolMathTraceController : ControllerBase
         }
     }
 
-    private static ProtocolMathFinalVerificationApiResponse ComputeFinalVerification(
-        ProtocolMathTraceApiResponse trace)
+    private static ProtocolMathFinalVerificationApiResponse ComputeFinalVerification(ProtocolMathTraceApiResponse trace)
     {
         if (!HasValue(trace.AggregateSignatureScalarHex) ||
             !HasValue(trace.AggregateNoncePointHex) ||
@@ -458,11 +474,15 @@ public sealed class ProtocolMathTraceController : ControllerBase
             var s = ToScalar(trace.AggregateSignatureScalarHex);
             var c = ToScalar(trace.ChallengeHex);
 
-            var aggregateNonce = runtime.Curve.DecodePoint(Convert.FromHexString(trace.AggregateNoncePointHex));
-            var aggregatePublicKey = runtime.Curve.DecodePoint(Convert.FromHexString(trace.AggregatePublicKeyHex));
+            var aggregateNonce = runtime.Curve.DecodePoint(Convert.FromHexString(trace.AggregateNoncePointHex)).Normalize();
+            var aggregatePublicKey = runtime.Curve.DecodePoint(Convert.FromHexString(trace.AggregatePublicKeyHex)).Normalize();
 
-            var left = runtime.G.Multiply(s).Normalize();
-            var right = aggregateNonce.Add(aggregatePublicKey.Multiply(c)).Normalize();
+            var left = runtime.G
+                .Multiply(s)
+                .Add(aggregatePublicKey.Multiply(c))
+                .Normalize();
+
+            var right = aggregateNonce;
 
             return new ProtocolMathFinalVerificationApiResponse
             {
@@ -481,10 +501,7 @@ public sealed class ProtocolMathTraceController : ControllerBase
     {
         var parameters = SecNamedCurves.GetByName("secp256r1");
 
-        return new CurveRuntime(
-            parameters.Curve,
-            parameters.G,
-            parameters.N);
+        return new CurveRuntime(parameters.Curve, parameters.G, parameters.N);
     }
 
     private static BcBigInteger ToScalar(string hex)
@@ -546,10 +563,13 @@ public sealed class ProtocolMathTraceController : ControllerBase
         return values.FirstOrDefault(x => !string.IsNullOrWhiteSpace(x)) ?? string.Empty;
     }
 
-    private sealed record CurveRuntime(
-        BcECCurve Curve,
-        BcECPoint G,
-        BcBigInteger N);
+    private sealed record CurveRuntime(BcECCurve Curve, BcECPoint G, BcBigInteger N);
+
+    private sealed class CommitmentCheck
+    {
+        public string RecomputedCommitmentHex { get; init; } = string.Empty;
+        public bool? Matches { get; init; }
+    }
 
     private sealed class ProtocolMathPointCheck
     {
