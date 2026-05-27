@@ -65,7 +65,7 @@
                     <p>Общие данные сессии и публичные криптографические значения.</p>
                 </div>
 
-                <a class="btn btn-outline-secondary" href="@($"/protocol-sessions?sessionId={_trace.SessionId}")">
+                <a class="btn btn-outline-secondary" href="protocol-sessions">
                     Вернуться к протоколу
                 </a>
             </div>

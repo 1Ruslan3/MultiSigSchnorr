@@ -5,6 +5,7 @@
 @using MultiSigSchnorr.Domain.Enums
 @rendermode InteractiveServer
 @inject MultiSigSchnorr.Web.Services.Api.ProtocolSessionsApiClient ApiClient
+@inject NavigationManager Navigation
 
 <PageTitle>Protocol Sessions</PageTitle>
 
@@ -167,7 +168,7 @@
                         @foreach (var sessionId in _sessionHistory)
                         {
                             <button class="history-item @(IsCurrentSession(sessionId) ? "active" : null)"
-                                    @onclick="() => LoadSessionAsync(sessionId)">
+                                    @onclick="() => LoadSessionAsync(sessionId, updateUrl: true)">
                                 @sessionId
                             </button>
                         }
@@ -291,7 +292,7 @@
                         </a>
 
                         <a class="btn btn-outline-info"
-                           href="@($"protocol-math/{session.SessionId}")">
+                           href="@($"/protocol-math/{session.SessionId}")">
                             Математический разбор
                         </a>
                     </div>
@@ -331,7 +332,6 @@
                         </div>
                     </div>
                 </div>
-
 
                 @if (_report is not null)
                 {
@@ -498,11 +498,13 @@
 
     protected override async Task OnParametersSetAsync()
     {
-        if (QuerySessionId.HasValue && QuerySessionId != _lastLoadedQuerySessionId)
-        {
-            await LoadSessionAsync(QuerySessionId.Value);
-            _lastLoadedQuerySessionId = QuerySessionId;
-        }
+        if (!QuerySessionId.HasValue || QuerySessionId.Value == Guid.Empty)
+            return;
+
+        if (QuerySessionId.Value == _lastLoadedQuerySessionId)
+            return;
+
+        await LoadSessionAsync(QuerySessionId.Value, updateUrl: false);
     }
 
     private async Task LoadAdministrationStateAsync()
@@ -547,11 +549,14 @@
                 });
 
             AddSessionToHistory(_session.SessionId);
+            _lastLoadedQuerySessionId = _session.SessionId;
 
             _report = null;
             _verificationMessage = null;
             _isSignatureValid = null;
             _info = "Протокольная сессия успешно создана.";
+
+            NavigateToSessionUrl(_session.SessionId, replace: true);
         }
         catch (Exception ex)
         {
@@ -559,7 +564,7 @@
         }
     }
 
-    private async Task LoadSessionAsync(Guid sessionId)
+    private async Task LoadSessionAsync(Guid sessionId, bool updateUrl = true)
     {
         try
         {
@@ -567,9 +572,14 @@
             _session = await ApiClient.GetSessionStateAsync(sessionId);
             _selectedProtectionMode = _session.ProtectionMode;
             AddSessionToHistory(sessionId);
+            _lastLoadedQuerySessionId = sessionId;
+
             _report = null;
             _verificationMessage = null;
             _isSignatureValid = null;
+
+            if (updateUrl)
+                NavigateToSessionUrl(sessionId, replace: true);
         }
         catch (Exception ex)
         {
@@ -587,6 +597,8 @@
             _error = null;
             _session = await ApiClient.GetSessionStateAsync(_session.SessionId);
             _selectedProtectionMode = _session.ProtectionMode;
+            _lastLoadedQuerySessionId = _session.SessionId;
+            NavigateToSessionUrl(_session.SessionId, replace: true);
         }
         catch (Exception ex)
         {
@@ -621,6 +633,9 @@
             _error = null;
             _info = null;
             _session = await ApiClient.PublishCommitmentAsync(_session.SessionId, participantId);
+            _lastLoadedQuerySessionId = _session.SessionId;
+            NavigateToSessionUrl(_session.SessionId, replace: true);
+
             _report = null;
             _verificationMessage = null;
             _isSignatureValid = null;
@@ -642,6 +657,9 @@
             _error = null;
             _info = null;
             _session = await ApiClient.RevealNonceAsync(_session.SessionId, participantId);
+            _lastLoadedQuerySessionId = _session.SessionId;
+            NavigateToSessionUrl(_session.SessionId, replace: true);
+
             _report = null;
             _verificationMessage = null;
             _isSignatureValid = null;
@@ -663,6 +681,9 @@
             _error = null;
             _info = null;
             _session = await ApiClient.SubmitPartialSignatureAsync(_session.SessionId, participantId);
+            _lastLoadedQuerySessionId = _session.SessionId;
+            NavigateToSessionUrl(_session.SessionId, replace: true);
+
             _report = null;
             _verificationMessage = null;
             _isSignatureValid = null;
@@ -685,6 +706,7 @@
             var result = await ApiClient.VerifyProtocolSessionSignatureAsync(_session.SessionId);
             _isSignatureValid = result.IsValid;
             _verificationMessage = result.Message;
+            NavigateToSessionUrl(_session.SessionId, replace: true);
         }
         catch (Exception ex)
         {
@@ -744,6 +766,14 @@
 
     private bool IsCurrentSession(Guid sessionId)
         => _session?.SessionId == sessionId;
+
+    private void NavigateToSessionUrl(Guid sessionId, bool replace)
+    {
+        var targetUrl = $"/protocol-sessions?sessionId={sessionId}";
+
+        if (!Navigation.Uri.EndsWith(targetUrl, StringComparison.OrdinalIgnoreCase))
+            Navigation.NavigateTo(targetUrl, replace);
+    }
 
     private bool CanPublishCommitment(SessionParticipantStateApiResponse participant)
         => _session is not null
